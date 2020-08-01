@@ -115,7 +115,7 @@ def GetNewEst(dXmat, Xmat, Amat, r, is_full=False):
         ndXmat[2*j, :] = tdXmat[j, :].real
         ndXmat[2*j+1, :] = tdXmat[j, :].imag
     if is_full:
-        return edict({"ndXmat":ndXmat, "nXmat":nXmat, "kpidxs":kpidxs, "eigVecs":eigVecs})
+        return edict({"ndXmat":ndXmat, "nXmat":nXmat, "kpidxs":kpidxs, "eigVecs":eigVecs, "eigVals":eigVals})
     else:
         return ndXmat, nXmat
 
@@ -160,7 +160,7 @@ def GetNlogk(pndXmat, pnXmat, Gamk):
     SigMat = resd.dot(resd.T)/nj
     U, S, VT = np.linalg.svd(SigMat)
     kpidx = np.where(S > (S[0]*1.490116e-8))[0]
-    newResd = (U.T[:, kpidx].dot(resd)).T
+    newResd = (U[:, kpidx].T.dot(resd)).T
     meanV = np.zeros(newResd.shape[1])
     Nloglike = - mnorm.logpdf(newResd, mean=meanV, cov=np.diag(S[kpidx])).sum()
     return Nloglike
@@ -252,7 +252,7 @@ def EGenDy(ndXmat, nXmat, kappa, Lmin=None, canpts=None, MaxM=None, Taget="min",
         U[k+1] = D[0]
         tau_mat[k, 0:(k+1)] = Pos[0, 0:(k+1)] - 1
     U0 = U 
-    U = U + r*np.log(n)**kappa* (np.arange(1, MaxM+2))
+    U = U + 2*r*np.log(n)**kappa* (np.arange(1, MaxM+2))
     chgMat = np.zeros(tau_mat.shape) + np.inf
     for iii in range(chgMat.shape[0]):
         idx = tau_mat[iii,: ]
@@ -298,7 +298,7 @@ def EGenDy(ndXmat, nXmat, kappa, Lmin=None, canpts=None, MaxM=None, Taget="min",
 
 
 # Reconstruct Xmat from results
-def ReconXmat(ecpts, ndXmat, nXmat, kpidxs, eigVecs, TrueXmat, tStep):
+def ReconXmat(ecpts, ndXmat, nXmat, kpidxs, eigVecs, Ymat, tStep):
     """
     Input: 
         ecpts: Estimated change points, 
@@ -306,14 +306,14 @@ def ReconXmat(ecpts, ndXmat, nXmat, kpidxs, eigVecs, TrueXmat, tStep):
         nXmat: a r x n matrix
         kpidxs: The intermedian output when calculating ndXmat, nXmat
         eigVecs: The matrix of eigen vectors of A matrix, d x d
-        TrueXmat: The true X matrix
+        Ymat: The matrix to construct, d x n
         tStep: The time step
 
     Return:
         Estimated Xmat, d x n
     """
     r, n = ndXmat.shape
-    d, _ = TrueXmat.shape
+    d, _ = Ymat.shape
     ecptsfull = np.concatenate(([0], ecpts, [n])) - 1
     ecptsfull = ecptsfull.astype(np.int)
     numchgfull = len(ecptsfull)
@@ -344,7 +344,7 @@ def ReconXmat(ecpts, ndXmat, nXmat, kpidxs, eigVecs, TrueXmat, tStep):
         LamMs[:, lower:upper] = ResegS[itr-1, ].reshape(-1, 1)
     
     EstXmat = np.zeros((d, n), dtype=np.complex)
-    EstXmat[:, 0] = TrueXmat[:, 0]
+    EstXmat[:, 0] = Ymat[:, 0]
     for i in range(1, n):
         mTerm = np.diag(LamMs[:, i])
         rTerm = np.linalg.inv(eigVecs)[:r, :].dot(EstXmat[:, i-1])
