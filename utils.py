@@ -12,8 +12,8 @@ from scipy.stats import multivariate_normal as mnorm
 # for general inverse of matrix
 from numpy.linalg import pinv, svd, inv
 #from tqdm import  tqdm
-from tqdm import tqdm
-#from tqdm import tqdm_notebook as tqdm
+#from tqdm import tqdm
+from tqdm import tqdm_notebook as tqdm
 import matplotlib.pyplot as plt
 # to use functions in R languge
 import rpy2.robjects as robj
@@ -23,10 +23,10 @@ from easydict import EasyDict as edict
 
 
 # Two functions  to use spline functions in R language
-def bw_nrd0_R(time):
+def bw_nrd0_R(time, fct=1):
     bw_nrd0 = robj.r["bw.nrd0"]
     time_r = robj.FloatVector(time)
-    return np.array(bw_nrd0(time_r))[0]
+    return np.array(bw_nrd0(time_r))[0]*fct
 
 def smooth_spline_R(x, y, lamb):
     smooth_spline_f = robj.r["smooth.spline"]
@@ -39,7 +39,7 @@ def smooth_spline_R(x, y, lamb):
     return {"yhat": ysp, "ydevhat": ysp_dev1}
 
 # Function to obtain the Bspline estimate of Xmat and dXmat, d x n
-def GetBsplienEst(Ymat, time):
+def GetBsplienEst(Ymat, time, lamb=1e-6):
     """
     Input:
         Ymat: The observed data matrix, d x n
@@ -51,7 +51,7 @@ def GetBsplienEst(Ymat, time):
     Xmatlist = []
     dXmatlist = []
     for i in range(d):
-        spres = smooth_spline_R(x=time, y=Ymat[i, :], lamb=1e-6)
+        spres = smooth_spline_R(x=time, y=Ymat[i, :], lamb=lamb)
         Xmatlist.append(spres["yhat"])
         dXmatlist.append(spres["ydevhat"])
     Xmat = np.array(Xmatlist)
@@ -59,7 +59,7 @@ def GetBsplienEst(Ymat, time):
     return dXmat, Xmat
 
 # Function to obtain the sum of Ai matrix
-def GetAmat(dXmat, Xmat, time, downrate=1):
+def GetAmat(dXmat, Xmat, time, downrate=1, fct=1):
     """
     Input: 
         dXmat: The first derivative of Xmat, d x n matrix
@@ -69,7 +69,7 @@ def GetAmat(dXmat, Xmat, time, downrate=1):
     Return:
         A d x d matrix, it is sum of n/downrate  Ai matrix
     """
-    h = bw_nrd0_R(time)
+    h = bw_nrd0_R(time, fct=fct)
     d, n = Xmat.shape
     Amat = np.zeros((d, d))
     for idx, s in enumerate(time[::downrate]):
@@ -82,7 +82,8 @@ def GetAmat(dXmat, Xmat, time, downrate=1):
         XY = kerdXmat.T.dot(kerXmat)/n
         U, S, VT = np.linalg.svd(M)
         # Num of singular values to keep
-        r = np.argmax(np.cumsum(S)/np.sum(S) >= 0.999) + 1
+        # r = np.argmax(np.cumsum(S)/np.sum(S) > 0.999) + 1 # For simulation
+        r = np.argmax(np.cumsum(S)/np.sum(S) >= 0.999) + 1 # For real data
         invM = U[:, :r].dot(np.diag(1/S[:r])).dot(VT[:r, :])
         Amat = Amat + XY.dot(invM)
     return Amat
@@ -298,7 +299,7 @@ def EGenDy(ndXmat, nXmat, kappa, Lmin=None, canpts=None, MaxM=None, Taget="min",
 
 
 # Reconstruct Xmat from results
-def ReconXmat(ecpts, ndXmat, nXmat, kpidxs, eigVecs, Ymat, tStep):
+def ReconXmat(ecpts, ndXmat, nXmat, kpidxs, eigVecs, Ymat, tStep, is_full=False):
     """
     Input: 
         ecpts: Estimated change points, 
@@ -306,8 +307,9 @@ def ReconXmat(ecpts, ndXmat, nXmat, kpidxs, eigVecs, Ymat, tStep):
         nXmat: a r x n matrix
         kpidxs: The intermedian output when calculating ndXmat, nXmat
         eigVecs: The matrix of eigen vectors of A matrix, d x d
-        Ymat: The matrix to construct, d x n
+        Ymat: The matrix to construct, d x n 
         tStep: The time step
+        if_full: Where outputing full info or not
 
     Return:
         Estimated Xmat, d x n
@@ -349,4 +351,10 @@ def ReconXmat(ecpts, ndXmat, nXmat, kpidxs, eigVecs, Ymat, tStep):
         mTerm = np.diag(LamMs[:, i])
         rTerm = np.linalg.inv(eigVecs)[:r, :].dot(EstXmat[:, i-1])
         EstXmat[:, i] = eigVecs[:, :r].dot(mTerm).dot(rTerm) * tStep + EstXmat[:,i-1]
-    return EstXmat.real
+    if is_full:
+        ReDict = edict()
+        ReDict.EstXmatReal = EstXmat.real
+        ReDict.LamMs = LamMs
+        return ReDict
+    else:
+        return EstXmat.real
