@@ -37,6 +37,13 @@ def smooth_spline_R(x, y, lamb):
     ysp_dev1 = np.array(robj.r['predict'](spline, deriv=1).rx2('y'))
     return {"yhat": ysp, "ydevhat": ysp_dev1}
 
+# The decimate function in R signal packages
+def decimate_R(seq, q):
+    robj.r("library(signal)")
+    decimate_R_f = robj.r("decimate")
+    seq_R = robj.FloatVector(seq)
+    return np.array(decimate_R_f(seq_R, q))
+
 # Function to obtain the Bspline estimate of Xmat and dXmat, d x n
 def GetBsplienEst(Ymat, time, lamb=1e-6):
     """
