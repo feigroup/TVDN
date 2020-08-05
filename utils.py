@@ -12,7 +12,6 @@ from scipy.stats import multivariate_normal as mnorm
 # for general inverse of matrix
 from numpy.linalg import pinv, svd, inv
 #from tqdm import  tqdm
-#from tqdm import tqdm
 from tqdm import tqdm_notebook as tqdm
 import matplotlib.pyplot as plt
 # to use functions in R languge
@@ -98,7 +97,7 @@ def GetNewEst(dXmat, Xmat, Amat, r, is_full=False):
         r: The number of eigen values to keep
         is_full: Where return full outputs or not
     Return: 
-        nXmat, ndXmat, nrow x n 
+        nXmat, ndXmat, rAct x n 
     """
     _, n = dXmat.shape
     eigVals, eigVecs = np.linalg.eig(Amat)
@@ -116,7 +115,7 @@ def GetNewEst(dXmat, Xmat, Amat, r, is_full=False):
         ndXmat[2*j, :] = tdXmat[j, :].real
         ndXmat[2*j+1, :] = tdXmat[j, :].imag
     if is_full:
-        return edict({"ndXmat":ndXmat, "nXmat":nXmat, "kpidxs":kpidxs, "eigVecs":eigVecs, "eigVals":eigVals})
+        return edict({"ndXmat":ndXmat, "nXmat":nXmat, "kpidxs":kpidxs, "eigVecs":eigVecs, "eigVals":eigVals, "r": r})
     else:
         return ndXmat, nXmat
 
@@ -126,14 +125,14 @@ def GetNewEst(dXmat, Xmat, Amat, r, is_full=False):
 def GetGammak(pndXmat, pnXmat):
     """
     Input: 
-        pndXmat: part of ndXmat, r x (j-i)
-        pnXmat: part of nXmat, r x (j-i)
+        pndXmat: part of ndXmat, rAct x (j-i)
+        pnXmat: part of nXmat, rAct x (j-i)
     Return:
-        Gamma matrix, r x r
+        Gamma matrix, rAct x rAct
     """
-    r, _ = pndXmat.shape
-    GamMat = np.zeros((r, r))
-    for i in range(int(r/2)):
+    rAct, _ = pndXmat.shape
+    GamMat = np.zeros((rAct, rAct))
+    for i in range(int(rAct/2)):
         tY = pndXmat[(2*i):(2*i+2) , :]
         tX = pnXmat[(2*i):(2*i+2) , :]
         corY = tY.dot(tX.T) # 2 x 2
@@ -150,11 +149,11 @@ def GetGammak(pndXmat, pnXmat):
 def GetNlogk(pndXmat, pnXmat, Gamk):
     """
     Input: 
-        pndXmat: part of ndXmat, r x (j-i)
-        pnXmat: part of nXmat, r x (j-i)
-        Gamk: Gamma matrix, r x r
+        pndXmat: part of ndXmat, rAct x (j-i)
+        pnXmat: part of nXmat, rAct x (j-i)
+        Gamk: Gamma matrix, rAct x rAct
     Return:
-        Sigma matrix, r x r
+        The Negative log likelihood
     """
     _, nj = pndXmat.shape
     resd = pndXmat - Gamk.dot(pnXmat)
@@ -171,8 +170,8 @@ def GetNlogk(pndXmat, pnXmat, Gamk):
 def EGenDy(ndXmat, nXmat, kappa, Lmin=None, canpts=None, MaxM=None, Taget="min", diag=False, Ms=None, savepath=None):
     """
     Input:
-    ndXmat: array, r x n. n is length of sequence. 
-    nXmat: array, r x n. n is length of sequence. 
+    ndXmat: array, rAct x n. n is length of sequence. 
+    nXmat: array, rAct x n. n is length of sequence. 
     kappa: The parameter of penalty
     Lmin: The minimal length between 2 change points
     canpts: candidate point set. list or array,  index should be from 1
@@ -197,9 +196,9 @@ def EGenDy(ndXmat, nXmat, kappa, Lmin=None, canpts=None, MaxM=None, Taget="min",
         else:
             return decon 
 
-    r, n = nXmat.shape
+    rAct, n = nXmat.shape
     if Lmin is None:
-        Lmin = r
+        Lmin = rAct
         
     if Taget == "min":
         tagf = np.min
@@ -253,7 +252,7 @@ def EGenDy(ndXmat, nXmat, kappa, Lmin=None, canpts=None, MaxM=None, Taget="min",
         U[k+1] = D[0]
         tau_mat[k, 0:(k+1)] = Pos[0, 0:(k+1)] - 1
     U0 = U 
-    U = U + 2*r*np.log(n)**kappa* (np.arange(1, MaxM+2))
+    U = U + 2*rAct*np.log(n)**kappa* (np.arange(1, MaxM+2))
     chgMat = np.zeros(tau_mat.shape) + np.inf
     for iii in range(chgMat.shape[0]):
         idx = tau_mat[iii,: ]
@@ -299,22 +298,23 @@ def EGenDy(ndXmat, nXmat, kappa, Lmin=None, canpts=None, MaxM=None, Taget="min",
 
 
 # Reconstruct Xmat from results
-def ReconXmat(ecpts, ndXmat, nXmat, kpidxs, eigVecs, Ymat, tStep, is_full=False):
+def ReconXmat(ecpts, ndXmat, nXmat, kpidxs, eigVecs, Ymat, tStep, r, is_full=False):
     """
     Input: 
         ecpts: Estimated change points, 
-        ndXmat: a r x n matrix
-        nXmat: a r x n matrix
+        ndXmat: a rAct x n matrix
+        nXmat: a rAct x n matrix
         kpidxs: The intermedian output when calculating ndXmat, nXmat
         eigVecs: The matrix of eigen vectors of A matrix, d x d
         Ymat: The matrix to construct, d x n 
         tStep: The time step
+        r: The rank setted beforehand, in most cases, r=rAct. If we have non-complex singular values, r < rAct
         if_full: Where outputing full info or not
 
     Return:
         Estimated Xmat, d x n
     """
-    r, n = ndXmat.shape
+    rAct, n = ndXmat.shape
     d, _ = Ymat.shape
     ecptsfull = np.concatenate(([0], ecpts, [n])) - 1
     ecptsfull = ecptsfull.astype(np.int)
@@ -327,7 +327,7 @@ def ReconXmat(ecpts, ndXmat, nXmat, kpidxs, eigVecs, Ymat, tStep, is_full=False)
         Ycur = ndXmat[:, lower:upper]
         Xcur = nXmat[:, lower:upper]
         lams = np.zeros(r, dtype=np.complex) + np.inf
-        for j in range(int(r/2)):
+        for j in range(int(rAct/2)):
             tY = Ycur[(2*j):(2*j+2), :]
             tX = Xcur[(2*j):(2*j+2), :]
             corY = tY.dot(tX.T)
@@ -335,7 +335,8 @@ def ReconXmat(ecpts, ndXmat, nXmat, kpidxs, eigVecs, Ymat, tStep, is_full=False)
             a = np.trace(corY)/corX
             b = (corY[1, 0] - corY[0, 1])/corX
             lams[kpidxs[j]] = a + b*1j
-        lams[lams==np.inf] = np.conjugate(lams[lams!=np.inf])
+        tmpIdx = np.where(lams==np.inf)[0]
+        lams[tmpIdx] = np.conjugate(lams[tmpIdx-1])
         ResegS[itr, :] = lams
     
     LamMs = np.zeros((r, n), dtype=np.complex)
