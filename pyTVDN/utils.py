@@ -6,17 +6,19 @@ The input and output of the functions also use R index method (i.e., start from 
 
 # import needed packages
 import numpy as np
-# the norm pdf
-from scipy.stats import norm
+from pprint import pprint
+from pathlib import Path
 from scipy.stats import multivariate_normal as mnorm
+from scipy.signal import decimate, detrend
 # for general inverse of matrix
 from numpy.linalg import pinv, svd, inv
+import seaborn as sns
 from tqdm import  tqdm
+#from tqdm import tqdm_notebook as tqdm
 import matplotlib.pyplot as plt
 # to use functions in R languge
 import rpy2.robjects as robj
 import pickle
-from time import time as Time
 from easydict import EasyDict as edict
 
 
@@ -44,7 +46,7 @@ def decimate_R(seq, q):
     return np.array(decimate_R_f(seq_R, q))
 
 # Function to obtain the Bspline estimate of Xmat and dXmat, d x n
-def GetBsplienEst(Ymat, time, lamb=1e-6):
+def GetBsplineEst(Ymat, time, lamb=1e-6):
     """
     Input:
         Ymat: The observed data matrix, d x n
@@ -173,7 +175,7 @@ def GetNlogk(pndXmat, pnXmat, Gamk):
 
 
 # Effcient dynamic programming to optimize the MBIC, 
-def EGenDy(ndXmat, nXmat, kappa, Lmin=None, canpts=None, MaxM=None, Taget="min", diag=False, Ms=None, savepath=None):
+def EGenDy(ndXmat, nXmat, kappa, Lmin=None, canpts=None, MaxM=None, Taget="min", is_full=False, Ms=None):
     """
     Input:
     ndXmat: array, rAct x n. n is length of sequence. 
@@ -184,7 +186,7 @@ def EGenDy(ndXmat, nXmat, kappa, Lmin=None, canpts=None, MaxM=None, Taget="min",
     MaxM: int, maximal number of change point 
     Ms: the list containing prespecified number of change points.
        When Ms=None, it means using MBIC to determine the number of change points
-    savepath: if None, dont save; otherwise save the intermediate results
+    is_full: Where return full outputs or not
 
     Return:
         change point set with index starting from 1
@@ -264,15 +266,6 @@ def EGenDy(ndXmat, nXmat, kappa, Lmin=None, canpts=None, MaxM=None, Taget="min",
         idx = tau_mat[iii,: ]
         idx = np.array(idx[idx<np.inf], dtype=np.int)
         chgMat[iii, :(iii+1)]= np.array(canpts)[idx] + 1 
-    if savepath is not None:
-        with open(savepath, "wb") as f:
-            res = {}
-            res["U0"] = U0
-            res["U"] = U
-            res["Hmat"] = Hmat
-            res["chgMat"] = chgMat
-            pickle.dump(edict(res), f)
-    
     
     mbic_numchg = np.argmin(U[:(MaxM+1)])
     if mbic_numchg == 0:
@@ -283,7 +276,7 @@ def EGenDy(ndXmat, nXmat, kappa, Lmin=None, canpts=None, MaxM=None, Taget="min",
         mbic_ecpts = np.array(canpts)[idx] + 1
         
     if Ms is None or len(Ms)==0:
-        if not diag:
+        if not is_full:
             return edict({"U":U, "mbic_ecpts": mbic_ecpts})
         else:
             return edict({"U":U, "mbic_ecpts": mbic_ecpts, "chgMat": chgMat, "U0":U0})
@@ -297,7 +290,7 @@ def EGenDy(ndXmat, nXmat, kappa, Lmin=None, canpts=None, MaxM=None, Taget="min",
                 idx = np.array(idx[idx<np.inf], dtype=np.int)
                 ecpts = np.array(canpts)[idx] + 1
             ecptss.append(ecpts)
-        if not diag:
+        if not is_full:
             return edict({"U":U, "ecptss": ecptss, "mbic_ecpts": mbic_ecpts})
         else:
             return edict({"U":U, "ecptss": ecptss, "mbic_ecpts": mbic_ecpts, "chgMat": chgMat, "U0":U0})
@@ -365,3 +358,282 @@ def ReconXmat(ecpts, ndXmat, nXmat, kpidxs, eigVecs, Ymat, tStep, r, is_full=Fal
         return ReDict
     else:
         return EstXmat.real
+
+
+class TVDNDetect:
+    def __init__(self, Ymat, dataType=None, saveDir=None, **paras):
+        self.Ymat = Ymat
+        self.paras = edict()
+        self.dataType = dataType.lower()
+        if self.dataType == "meg":
+            self.paras.kappa = 2.65
+            self.paras.Lmin = 60
+            self.paras.r = 6
+            self.paras.MaxM = 19
+            self.paras.lamb = 1e-4
+            self.paras.downRate = 20
+            self.paras.decimateRate = 10
+            self.paras.T = 2
+            self.paras.is_detrend = False
+            self.paras.fct = 0.5
+            self.paras.fName = "MEG"
+            self.paras.plotfct = 30
+            self.paras.freq = 30
+        elif self.dataType == "fmri":
+            self.paras.kappa = 2.65
+            self.paras.Lmin = 4
+            self.paras.r = 6
+            self.paras.MaxM = 19
+            self.paras.lamb = 1e-6
+            self.paras.downRate = 4
+            self.paras.decimateRate = None
+            self.paras.T = 2
+            self.paras.is_detrend = False
+            self.paras.fct = 1
+            self.paras.fName = "fMRI"
+            self.paras.plotfct = 1
+            self.paras.freq = 180
+        keys = list(self.paras.keys())
+        for key in paras.keys():
+            self.paras[key] = paras[key]
+        print("The parameters for detection are:")
+        pprint(self.paras)
+        
+        if saveDir is not None:
+            self.saveDir = Path(saveDir)
+        else:
+            self.saveDir = saveDir
+            
+        self.nYmat = None
+        self.Xmat = None
+        self.dXmat = None
+        self.time = None
+        self.midRes = None
+        self.nXmat = None
+        self.ndXmat = None
+        self.Amat = None
+        self.finalRes = None
+        self.RecYmatAll = None
+    
+    def _preprocess(self):
+        # Detrend the data
+        is_detrend = self.paras.is_detrend
+        if is_detrend:
+            nYmat = detrend(self.Ymat)
+        else:
+            nYmat = self.Ymat
+            
+        # Decimate the data
+        decimateRate = self.paras.decimateRate
+        if decimateRate is not None:
+            nYmatList = []
+            for i in range(nYmat.shape[0]):
+                nYmatList.append(decimate_R(nYmat[i, :], decimateRate))
+            self.nYmat = np.array(nYmatList)
+        else:
+            self.nYmat = nYmat
+    
+    def GetBsplineEst(self):
+        if self.nYmat is None:
+            self._preprocess()
+        d, n = self.nYmat.shape
+        T = self.paras.T
+        lamb = self.paras.lamb
+        self.time = np.linspace(0, T, n)
+        self.dXmat, self.Xmat = GetBsplineEst(self.nYmat, self.time, lamb=lamb)
+    
+    def GetAmat(self):
+        downRate = self.paras.downRate
+        fct = self.paras.fct
+        if self.dXmat is None:
+            self.GetBsplineEst()
+        self.Amat = GetAmat(self.dXmat, self.Xmat, self.time, downRate, fct=fct)
+    
+    
+    def GetNewData(self):
+        r = self.paras.r
+        
+        if self.Amat is None:
+            self.GetAmat()
+        
+        self.midRes = GetNewEst(self.dXmat, self.Xmat, self.Amat, r=r, is_full=True)
+        self.ndXmat, self.nXmat = self.midRes.ndXmat, self.midRes.nXmat
+    
+    def __call__(self):
+        kappa = self.paras.kappa
+        Lmin = self.paras.Lmin
+        MaxM = self.paras.MaxM
+        
+        if self.saveDir is not None:
+            saveResPath = self.saveDir/f"{self.paras.fName}_Rank{self.paras.r}.pkl"
+            if not saveResPath.exists():
+                if self.midRes is None:
+                    self.GetNewData()
+                self.finalRes = EGenDy(self.ndXmat, self.nXmat, kappa=kappa, Lmin=Lmin, MaxM=MaxM, is_full=True)
+                self.ecpts = self.finalRes.mbic_ecpts
+                print(f"Save Main Results at {saveResPath}.")
+                MainResults = edict()
+                MainResults.nYmat = self.nYmat
+                MainResults.Ymat = self.Ymat
+                MainResults.midRes = self.midRes
+                MainResults.finalRes = self.finalRes
+                MainResults.Amat = self.Amat
+                MainResults.paras = self.paras
+                with open(saveResPath, "wb") as f:
+                    pickle.dump(MainResults, f)
+            else:
+                with open(saveResPath, "rb") as f:
+                    MainResults = pickle.load(f)
+                    self.finalRes = MainResults.finalRes
+                    self.ecpts = self.finalRes.mbic_ecpts
+                    self.nYmat = MainResults.nYmat
+                    self.Ymat = MainResults.Ymat
+                    self.midRes = MainResults.midRes
+                    self.Amat = MainResults.Amat
+                
+        else:
+            if self.midRes is None:
+                self.GetNewData()
+            self.finalRes = EGenDy(self.ndXmat, self.nXmat, kappa=kappa, Lmin=Lmin, MaxM=MaxM, is_full=True)
+            self.ecpts = self.finalRes.mbic_ecpts
+            
+    def PlotECPTs(self):
+        assert self.finalRes is not None, "Run main function first!"
+        d, n = self.nYmat.shape
+        ajfct = n/(self.paras.plotfct*self.paras.T)
+        ptime = np.linspace(0, self.paras.T, n) * self.paras.plotfct
+        plt.figure(figsize=[10, 5])
+        for i in range(d):
+            plt.plot(ptime, self.nYmat[i, :], "-")
+        for ecpt in self.ecpts:
+            plt.axvline(ecpt/ajfct, color="black", linestyle="-.")
+        plt.show() 
+        
+    
+    def PlotRecCurve(self, idxs):
+        assert self.finalRes is not None, "Run main function first!"
+        assert self.RecYmatAll is not None, "Run TuningKappa function first!"
+        numChgCur = len(self.ecpts)
+        RecYmatCur = self.RecYmatAll[numChgCur].EstXmatReal
+        d, n = RecYmatCur.shape
+        assert d>=np.max(idxs) & np.min(idxs)>=0, "Wrong index!"
+        
+        ajfct = n/(self.paras.plotfct*self.paras.T)
+        ptime = np.linspace(0, self.paras.T, n) * self.paras.plotfct
+        
+        numSubPlot = len(idxs)
+        numRow = ((numSubPlot-1) // 3) + 1
+        
+        plt.figure(figsize=[15, 5*numRow])
+
+        for i, idx, in enumerate(idxs):
+            plt.subplot(numRow, 3, i+1)
+            plt.plot(ptime, self.nYmat[idx, :], label="Observed")
+            plt.plot(ptime, RecYmatCur[idx, :], label="Estimated")
+            plt.legend()
+        plt.show()
+    
+    def PlotEigenCurve(self):
+        assert self.finalRes is not None, "Run main function first!"
+        assert self.RecYmatAll is not None, "Run TuningKappa function first!"
+        freq = self.paras.freq
+        numChgCur = len(self.ecpts)
+        LamMs = self.RecYmatAll[numChgCur].LamMs
+        ReLamMs = LamMs.real*freq/30 
+        ImLamMs = LamMs.imag*freq /(30*2*np.pi)
+        cols = sns.color_palette("Paired", ReLamMs.shape[0])
+        _, n = LamMs.shape
+        ajfct = n/(self.paras.plotfct*self.paras.T)
+        ptime = np.linspace(0, self.paras.T, n) * self.paras.plotfct
+        
+        plt.figure(figsize=[20,10])
+        plt.subplot(121)
+        for i in range(ReLamMs.shape[0]):
+            plt.plot(ptime, ReLamMs[i, :], label=f"Lam {i+1}", 
+                     color=cols[i], linewidth=2)
+        plt.ylabel("change of growth/decay constant")
+        plt.xlabel("time")
+        _ = plt.legend()
+        
+        plt.subplot(122)
+        for i in range(ReLamMs.shape[0]):
+            plt.plot(ptime, ImLamMs[i, :], label=f"Lam {i+1}", 
+                     color=cols[i], linewidth=2)
+        plt.ylabel("change of growth/decay constant")
+        plt.xlabel("time")
+        _ = plt.legend()
+        plt.show()
+
+    
+    def __GetRecYmats(self):
+        if self.RecYmatAll is None:
+            RecYmatAll = []
+            MaxM = self.paras.MaxM
+            r = self.paras.r
+            finalRes = self.finalRes
+            midRes = self.midRes
+            _, n = midRes.nXmat.shape
+            time = np.linspace(0, self.paras.T, n)
+            tStep = np.diff(time)[0]
+            ndXmat = midRes.ndXmat
+            nXmat = midRes.nXmat
+            kpidxs = midRes.kpidxs
+            eigVecs = midRes.eigVecs
+            for numchg in range(MaxM+1):
+                print(f"Current number of change point is {numchg}.")
+                if numchg == 0:
+                    RecResCur = ReconXmat([], ndXmat, nXmat, kpidxs, eigVecs, self.nYmat, tStep, r=r, is_full=True) 
+                else:
+                    RecResCur = ReconXmat(finalRes.chgMat[numchg-1, :numchg], ndXmat, nXmat, kpidxs, eigVecs, self.nYmat, tStep, r=r, is_full=True) 
+                RecYmatAll.append(RecResCur)
+            self.RecYmatAll = RecYmatAll
+    
+    
+    def TuningKappa(self, kappas):
+        assert self.finalRes is not None, "Run main function first!"
+        
+        MaxM = self.paras.MaxM
+        U0 = self.finalRes.U0 
+        rAct, n = self.midRes.nXmat.shape
+        Us = []
+        for kappac in kappas:
+            Us.append(U0 + 2*rAct*np.log(n)**kappac* (np.arange(1, MaxM+2)))
+        Us = np.array(Us)
+        numchgs = Us.argmin(axis=1)
+        time = np.linspace(0, self.paras.T, n)
+        
+        if self.saveDir is not None:
+            RecYmatAllPath = self.saveDir/f"{self.paras.fName}_Rank{self.paras.r}_RecAll.pkl"
+            if not RecYmatAllPath.exists():
+                self.__GetRecYmats()
+                with open(RecYmatAllPath, "wb") as f:
+                    pickle.dump(self.RecYmatAll, f)
+            else:
+                with open(RecYmatAllPath, "rb") as f:
+                    self.RecYmatAll = pickle.load(f)
+        else:
+            self.__GetRecYmats()
+            
+        MSEs = []
+        for i in range(MaxM+1):
+            RecYmatCur = self.RecYmatAll[i].EstXmatReal
+            MSE = np.mean((RecYmatCur-self.nYmat)**2)
+            MSEs.append(MSE)
+        self.MSEs = MSEs
+        
+        self.optNumChg = np.argmin(MSEs)
+        
+        MSEsKappa = [MSEs[i] for i in numchgs]
+        self.optKappa = kappas[np.argmin(MSEsKappa)]
+        self.optKappaOptNumChg = numchgs[np.argmin(MSEsKappa)]
+    
+    def updateEcpts(self, numChg=None):
+        assert self.finalRes is not None, "Run main function first!"
+        assert self.RecYmatAll is not None, "Run TuningKappa function first!"
+        if numChg is None:
+            numChg = self.optNumChg
+        if numChg == 0:
+            self.ecpts = []
+        else:
+            self.ecpts = self.finalRes.chgMat[numChg-1, :numChg]
+    
