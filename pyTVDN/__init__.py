@@ -1,4 +1,4 @@
-from .utils import TVDNDetect
+from .TVDNclass import TVDNDetect
 
 
 __all__ = ["TVDNDetect"]
