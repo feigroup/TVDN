@@ -35,6 +35,10 @@ class TVDNDetect:
         self.paras = edict()
         if dataType is not None:
             self.dataType = dataType.lower()
+        else:
+            self.dataType = dataType
+
+
         if self.dataType == "meg":
             self.paras.kappa = 2.65
             self.paras.Lmin = 60
