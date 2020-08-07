@@ -54,12 +54,12 @@ class TVDNDetect:
             self.paras.Lmin = 4
             self.paras.r = 6
             self.paras.MaxM = 19
-            self.paras.lamb = 1e-6
+            self.paras.lamb = 1e-4
             self.paras.downRate = 4
             self.paras.decimateRate = None
             self.paras.T = 2
             self.paras.is_detrend = False
-            self.paras.fct = 1
+            self.paras.fct = 0.5
             self.paras.fName = "fMRI"
             self.paras.plotfct = 1
             self.paras.freq = 180

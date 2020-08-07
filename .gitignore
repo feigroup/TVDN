@@ -1,6 +1,9 @@
 pyTVDN/__pycache__/*
 __pycache__/*
 .ipynb_checkpoints/*
+demo/.ipynb_checkpoints/*
 *.pkl
 Rcode/*
 test.*
+simulation100.ipynb
+tmp/*

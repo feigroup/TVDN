@@ -31,4 +31,4 @@ install.packages("signal")
 
 ##  Examples
 
-You may find a demo in 
+You may find demo for MEG and fMRI data in demo folder.
