@@ -33,7 +33,8 @@ class TVDNDetect:
         """
         self.Ymat = Ymat
         self.paras = edict()
-        self.dataType = dataType.lower()
+        if dataType is not None:
+            self.dataType = dataType.lower()
         if self.dataType == "meg":
             self.paras.kappa = 2.65
             self.paras.Lmin = 60
@@ -102,7 +103,7 @@ class TVDNDetect:
         self.RecResCur = None
     
     # Data preprocessing, including detrend and decimate
-    def _preprocess(self):
+    def _Preprocess(self):
         # Detrend the data
         is_detrend = self.paras.is_detrend
         if is_detrend:
@@ -124,7 +125,7 @@ class TVDNDetect:
     
     def GetBsplineEst(self):
         if self.nYmat is None:
-            self._preprocess()
+            self._Preprocess()
         d, n = self.nYmat.shape
         T = self.paras.T
         lamb = self.paras.lamb
@@ -177,7 +178,7 @@ class TVDNDetect:
                     self.finalRes = MainResults.finalRes
                     self.ecpts = self.finalRes.mbic_ecpts
                     self.nYmat = MainResults.nYmat
-                    self.Ymat = MainResults.Ymat
+                    #self.Ymat = MainResults.Ymat
                     self.midRes = MainResults.midRes
                     self.Amat = MainResults.Amat
                     self.ptime = MainResults.ptime
@@ -189,7 +190,7 @@ class TVDNDetect:
             self.ecpts = self.finalRes.mbic_ecpts
             
     # Plot the change point detection results
-    def PlotECPTs(self, saveFigPath=None):
+    def PlotEcpts(self, saveFigPath=None):
         assert self.finalRes is not None, "Run main function first!"
         d, n = self.nYmat.shape
         ajfct = n/(self.paras.plotfct*self.paras.T)
@@ -367,11 +368,11 @@ class TVDNDetect:
         self.optKappa = kappas[np.argmin(MSEsKappa)]
         self.optKappaOptNumChg = numchgs[np.argmin(MSEsKappa)]
     
-    def updateEcpts(self, numChg=None):
+    def UpdateEcpts(self, numChg=None):
         assert self.finalRes is not None, "Run main function first!"
         if numChg is None:
             assert self.RecYmatAll is not None, "Run TuningKappa function first!"
-            numChg = self.optNumChg
+            numChg = self.optKappaOptNumChg
         if numChg == 0:
             self.ecpts = []
         else:
