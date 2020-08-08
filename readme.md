@@ -53,7 +53,7 @@ Detection = TVDNDetect(Ymat=Ymat, saveDir="../results", dataType="MEG", fName="s
 # Run detection
 Detection()
 
-# You can tuning the kappa, the parameters for MBIC penalty term
+# You can tune the kappa, the parameters for MBIC penalty term
 kappas = np.linspace(2.5, 3, 100)
 Detection.TuningKappa(kappas)
 
@@ -66,9 +66,9 @@ Detection.UpdateEcpts()
 Detection.PlotEcpts(saveFigPath="detectionResults.jpg")
 # save figure if you specify the `saveFigPath`
 
-# Plot the Reconstruncted Ymat.
+# Plot the reconstruncted Ymat.
 Detection.PlotRecCurve(idxs=[43, 45, 59], saveFigPath="recCurve.jpg")
-# idxs: The indices of sequence to plot
+# idxs: The indices of sequences to plot
 
 # Plot the eigen values curve
 Detection.PlotEigenCurve()
