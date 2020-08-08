@@ -52,7 +52,7 @@ class TVDNDetect:
             self.paras.fct = 0.5
             self.paras.fName = "MEG"
             self.paras.plotfct = 30
-            self.paras.freq = 30
+            self.paras.freq = 60
         elif self.dataType == "fmri":
             self.paras.kappa = 2.65
             self.paras.Lmin = 4
@@ -66,7 +66,7 @@ class TVDNDetect:
             self.paras.fct = 0.5
             self.paras.fName = "fMRI"
             self.paras.plotfct = 1
-            self.paras.freq = 180
+            self.paras.freq = 1
         else:
             self.paras.kappa = 2.65
             self.paras.Lmin = 4
