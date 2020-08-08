@@ -66,7 +66,7 @@ class TVDNDetect:
             self.paras.fct = 0.5
             self.paras.fName = "fMRI"
             self.paras.plotfct = 1
-            self.paras.freq = 1
+            self.paras.freq = 0.5
         else:
             self.paras.kappa = 2.65
             self.paras.Lmin = 4
@@ -246,8 +246,10 @@ class TVDNDetect:
         freq = self.paras.freq
         numChgCur = len(self.ecpts)
         LamMs = self.RecResCur.LamMs
-        ReLamMs = LamMs.real*freq/30 
-        ImLamMs = LamMs.imag*freq /(30*2*np.pi)
+        _, n = LamMs.shape
+        acTime = n / self.paras.freq
+        ReLamMs = LamMs.real*freq/(acTime/self.paras.T)
+        ImLamMs = LamMs.imag*freq /((2*np.pi)*(acTime/self.paras.T))
         cols = sns.color_palette("Paired", ReLamMs.shape[0])
         
         plt.figure(figsize=[20,10])
