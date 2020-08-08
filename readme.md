@@ -31,7 +31,7 @@ install.packages("signal")
 
 ##  Examples
 
-You may find demo for MEG and fMRI data in demo folder.
+You may find demos for MEG and fMRI data in **demo** folder.
 
 ```python
 
