@@ -76,8 +76,9 @@ Detection.PlotEigenCurve()
 
 ```
 
+
 You can tune kappa and rank simultaneously, but it would typically take a while.
-```
+```python
 from pyTVDN import TVDNRankTuning
 
 ranks = [2, 4, 6, 8, 10]
@@ -89,7 +90,7 @@ Res = TVDNRankTuning(ranks, kappas, Ymat=Ymat, dataType="fMRI", saveDir="./resul
 **Res contains:**
 
 A dict containing:
-            1. Optimal rank in the given ranks
-            2. Optimal kappa in the given kappas
-            3. The detection object under the optimal rank and kappa
-            4. The minimal MSE in the given ranks and kappas
+- Optimal rank in the given ranks
+- Optimal kappa in the given kappas
+- The detection object under the optimal rank and kappa
+- The minimal MSE in the given ranks and kappas
