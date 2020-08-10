@@ -12,24 +12,25 @@ from .Rfuns import decimate_R
 class TVDNDetect:
     def __init__(self, Ymat, dataType=None, saveDir=None, **paras):
         """
-        Ymat: The data matrix, d x n
-        dataType: real data type, fMRI or MEG
-        saveDir: Dir to save the results, if not specified, not save
-        paras: Other parameters. There are default parameters but you may specify these parameters manually.
-           Inlcuding:
-                kappa: The parameter of penalty
-                Lmin: The minimal length between 2 change points
-                r: The rank setted beforehand, in most cases, r=rAct. If we have non-complex singular values, r < rAct
-                MaxM: int, maximal number of change point 
-                lamb: The smooth parameter for B-spline
-                downRate: The downsample factor, determine how many Ai matrix to contribute to estimate the eigen values/vectors.
-                decimateRate: Mainly for MEG data. The rate to decimate from MEG data.
-                T: The time course
-                is_detrend: Whether detrend data or not
-                fct: The factor to ajust h when estimating A matrix
-                fName:  The file name when saving the results
-                plotfct: The factor to ajust the time course when plotting
-                freq: The parameter used drawing the eigen values plots
+        Input:
+            Ymat: The data matrix, d x n
+            dataType: real data type, fMRI or MEG
+            saveDir: Dir to save the results, if not specified, not save
+            paras: Other parameters. There are default valuesi but you may specify these parameters manually.
+               Inlcuding:
+                    kappa: The parameter of penalty in MBIC
+                    Lmin: The minimal length between 2 change points
+                    r: The rank setted beforehand, in most cases, r=rAct. If we have non-complex singular values, r < rAct
+                    MaxM: int, maximal number of change point 
+                    lamb: The smooth parameter for B-spline
+                    downRate: The downsample factor, determine how many Ai matrix to contribute to estimate the eigen values/vectors.
+                    decimateRate: Mainly for MEG data. The rate to decimate from MEG data.
+                    T: The time course
+                    is_detrend: Whether detrend data or not
+                    fct: The factor to adjust h when estimating A matrix
+                    fName:  The file name when saving the results
+                    plotfct: The factor to adjust the time course when plotting
+                    freq: The parameter used drawing the eigen values plots
         """
         self.Ymat = Ymat
         self.paras = edict()
@@ -57,7 +58,7 @@ class TVDNDetect:
             self.paras.kappa = 2.65
             self.paras.Lmin = 4
             self.paras.r = 6
-            self.paras.MaxM = 19
+            self.paras.MaxM = 10
             self.paras.lamb = 1e-4
             self.paras.downRate = 4
             self.paras.decimateRate = None
@@ -65,7 +66,7 @@ class TVDNDetect:
             self.paras.is_detrend = False
             self.paras.fct = 0.5
             self.paras.fName = "fMRI"
-            self.paras.plotfct = 1
+            self.paras.plotfct = 180
             self.paras.freq = 0.5
         else:
             self.paras.kappa = 2.65
@@ -105,6 +106,7 @@ class TVDNDetect:
         self.finalRes = None
         self.RecYmatAll = None
         self.RecResCur = None
+        self.numchgs = None
     
     # Data preprocessing, including detrend and decimate
     def _Preprocess(self):
@@ -273,6 +275,14 @@ class TVDNDetect:
         else:
             plt.savefig(saveFigPath)
 
+    def GetCurMSE(self):
+        assert self.finalRes is not None, "Run main function first!"
+        if self.RecResCur is None:
+            self.__GetRecResCur()
+        RecYmatCur = self.RecResCur.EstXmatReal
+        MSE = np.mean((RecYmatCur-self.nYmat)**2)
+        return MSE
+
 
     def __GetRecResCur(self):
         numchg = len(self.ecpts)
@@ -347,6 +357,7 @@ class TVDNDetect:
             Us.append(U0 + 2*rAct*np.log(n)**kappac* (np.arange(1, MaxM+2)))
         Us = np.array(Us)
         numchgs = Us.argmin(axis=1)
+        self.numchgs = numchgs
         time = np.linspace(0, self.paras.T, n)
         
         if self.saveDir is not None:
@@ -385,3 +396,4 @@ class TVDNDetect:
             self.ecpts = self.finalRes.chgMat[numChg-1, :numChg]
         self.__GetRecResCur()
     
+
