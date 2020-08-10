@@ -91,5 +91,5 @@ Res is a `dict` containing:
 
 - Optimal rank in the given ranks
 - Optimal kappa in the given kappas
-- The detection object under the optimal rank and kappa
+- The `TVDNDetect` object under the optimal rank and kappa
 - The minimal MSE in the given ranks and kappas
