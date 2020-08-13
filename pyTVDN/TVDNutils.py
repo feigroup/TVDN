@@ -13,7 +13,7 @@ from .Rfuns import bw_nrd0_R, smooth_spline_R
 if in_notebook():
     from tqdm import tqdm_notebook as tqdm
 else:
-    from tqdm import  tqdm
+    from tqdm import tqdm
 
 
 # Function to obtain the Bspline estimate of Xmat and dXmat, d x n

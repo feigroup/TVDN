@@ -8,4 +8,5 @@ test.*
 simulation100.ipynb
 tmp/*
 data/*
+!data/*.pkl
 demo/*.jpg

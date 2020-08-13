@@ -6,8 +6,14 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import pickle
 from easydict import EasyDict as edict
+from prettytable import PrettyTable
 from .TVDNutils import *
 from .Rfuns import decimate_R
+from .utils import in_notebook
+if in_notebook():
+    from tqdm import tqdm_notebook as tqdm
+else:
+    from tqdm import tqdm
 
 class TVDNDetect:
     def __init__(self, Ymat, dataType=None, saveDir=None, **paras):
@@ -107,6 +113,7 @@ class TVDNDetect:
         self.RecYmatAll = None
         self.RecResCur = None
         self.numchgs = None
+        self.ecpts = None
     
     # Data preprocessing, including detrend and decimate
     def _Preprocess(self):
@@ -335,8 +342,10 @@ class TVDNDetect:
             nXmat = midRes.nXmat
             kpidxs = midRes.kpidxs
             eigVecs = midRes.eigVecs
-            for numchg in range(MaxM+1):
-                print(f"Current number of change point is {numchg}.")
+            pbar = tqdm(range(MaxM+1))
+            for numchg in pbar:
+                pbar.set_description(f"Kappa Tuning")
+        #        print(f"Current number of change point is {numchg}.")
                 if numchg == 0:
                     RecResCur = ReconXmat([], ndXmat, nXmat, kpidxs, eigVecs, self.nYmat, tStep, r=r, is_full=True) 
                 else:
@@ -397,3 +406,12 @@ class TVDNDetect:
         self.__GetRecResCur()
     
 
+    def __str__(self):
+        tb = PrettyTable(["Num of CPTs", "Estiamted CPTs", "MSE", "Rank"])
+        if self.finalRes is None:
+            print("Run main function fisrt!")
+            tb.add_row([None, None, None, self.paras.r])
+        else:
+            MSE = self.GetCurMSE()
+            tb.add_row([len(self.ecpts), self.ecpts, MSE, self.paras.r])
+        return tb.__str__()
