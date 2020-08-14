@@ -5,11 +5,11 @@
 numpy 
 scipy
 rpy2
-pprint
 seaborn
 easydict
 tqdm
 matplotlib
+prettytable
 
 ### For robustness consideration, we also call some functions from R language
 ### So you also need "signal" package in R

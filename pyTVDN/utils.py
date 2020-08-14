@@ -1,6 +1,8 @@
 import sys
 import numpy as np
 from numpy.linalg import inv
+from pathlib import Path
+import pickle
 
 
 def in_notebook():
@@ -26,7 +28,8 @@ def GenSingleData(time, cpts, U=None, Vs=None):
         
         
     if U is None:
-        with open("../data/SimuEigen.pkl", "rb") as f:
+        filePath = Path(__file__).parent
+        with open(filePath/"data/SimuEigen.pkl", "rb") as f:
             SimuEigen = pickle.load(f)
             U = SimuEigen["U"]
             Vs = SimuEigen["Vs"]

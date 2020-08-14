@@ -9,4 +9,5 @@ simulation100.ipynb
 tmp/*
 data/*
 !data/*.pkl
+!pyTVDN/data/*
 demo/*.jpg
