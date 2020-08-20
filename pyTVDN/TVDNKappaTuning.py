@@ -1,18 +1,21 @@
-from .TVDNclass import TVDNDetect
 from easydict import EasyDict as edict
+from .TVDNclass import TVDNDetect
 import numpy as np
 
-
-def TVDNRankTuning(ranks, kappas, Ymat, dataType=None, saveDir=None, **paras):
+# Tuning the kappa w.r.t MSE based on CV
+def TVDNKappaTuningCV(kappas, Ymat, numFold=10, wh=None, dataType=None, saveDir=None, **paras):
     """
     Input:
-        ranks: The range of ranks to tune
         kappas: The range of kappas to tune
         Ymat: The data matrix, d x n
+        numFold: The number of folds for cross validation
+        wh: The window size for screening step. If None, no screening step
         dataType: real data type, fMRI or MEG
         saveDir: Dir to save the results, if not specified, not save
         paras: Other parameters. There are default values but you may specify these parameters manually.
             Inlcuding:
+            r: The rank for the detection
+            kappa: The parameter of penalty in MBIC
             Lmin: The minimal length between 2 change points
             MaxM: int, maximal number of change point 
             lamb: The smooth parameter for B-spline
@@ -31,54 +34,36 @@ def TVDNRankTuning(ranks, kappas, Ymat, dataType=None, saveDir=None, **paras):
             3. The detection object under the optimal rank and kappa
             4. The minimal MSE in the given ranks and kappas
     """
-
-    try:
-        len(kappas)
-    except:
-        kappas = [kappas]
     kappas = np.array(kappas)
-
     kappaCur = kappas[0]
     paras["kappa"] = kappaCur
 
-    MSEs = []
-    optKappasCur = []
-    detections = []
-    for rank in ranks:
-        print("="*50)
-        print(f"The current rank is {rank}.")
-        paras["r"] = rank
-        detection = TVDNDetect(Ymat=Ymat, dataType=dataType, saveDir=saveDir, **paras)
+    adjFct = numFold/(numFold-1)
+    d, n = Ymat.shape
+    MaxM = paras.MaxM
+
+    CVRecXmat = np.zeros((d, n))
+    CVRecXmats = [CVRecXmat] * len(kappas)
+    
+    for k in range(numFold):
+        idxs = np.arange(n, step=numFold)+k
+        idxs = idxs[idxs<n]
+        Ymatk = np.delete(Ymat, idxs, axis=1)
+        detection = TVDNDetect(Ymat=Ymatk, dataType=dataType, saveDir=saveDir, **paras)
+        if wh is not None:
+            detection.Screening(wh=wh)
         detection()
-        if len(kappas) == 1:
-            MSE = detection.GetCurMSE()
-            optKappaCur = kappaCur
-        else:
-            detection.TuningKappa(kappas)
-            MSEKappas = [detection.MSEs[i] for i in detection.numchgs]
 
-            #optMSECur = np.min(detection.MSEs)
-            #optNum = np.argmin(detection.MSEs)
-
-            optKappaCur = kappas[MSEKappas==np.min(MSEKappas)]
-            optKappaOptNumChg = detection.numchgs[np.argmin(MSEKappas)]
-            MSE = detection.MSEs[optKappaOptNumChg]
-
-        MSEs.append(MSE)
-        optKappasCur.append(optKappaCur)
-        detections.append(detection)
-
-        print("="*50)
-
-    optRank = ranks[np.argmin(MSEs)]
-    optKappa = optKappasCur[np.argmin(MSEs)]
-    optDetect = detections[np.argmin(MSEs)]
-    if len(kappas) != 1:
-        optDetect.UpdateEcpts()
-
-    Res = edict()
-    Res.minErr = np.min(MSEs)
-    Res.optRank = optRank
-    Res.optKappa = optKappa
-    Res.DetectObj = optDetect
-    return Res
+        U0 = detection.finalRes.U0
+        rAct, _ = detection.midRes.nXmat.shape
+        Us = []
+        for kappac in kappas:
+            Us.append(U0 + 2*rAct*np.log(n)**kappac* (np.arange(1, MaxM+2)))
+        Us = np.array(Us)
+        numchgs = Us.argmin(axis=1)
+                
+        for numchg in numchgs:
+            if numchg == 0:
+                pass
+            else:
+                pass

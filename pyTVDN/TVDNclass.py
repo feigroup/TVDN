@@ -114,6 +114,7 @@ class TVDNDetect:
         self.RecResCur = None
         self.numchgs = None
         self.ecpts = None
+        self.canpts = None
     
     # Data preprocessing, including detrend and decimate
     def _Preprocess(self):
@@ -161,18 +162,70 @@ class TVDNDetect:
         
         self.midRes = GetNewEst(self.dXmat, self.Xmat, self.Amat, r=r, is_full=True)
         self.ndXmat, self.nXmat = self.midRes.ndXmat, self.midRes.nXmat
+        
+    # Get the scanning stats at index k
+    def GetScanStats(self, k, wh):
+        lidx = k - wh + 1
+        uidx = k + wh + 1
+
+        pndXmatA = self.ndXmat[:, lidx:uidx]
+        pnXmatA = self.nXmat[:, lidx:uidx]
+        GamkA = GetGammak(pndXmatA, pnXmatA)
+        nlogA = GetNlogk(pndXmatA, pnXmatA, GamkA)
+
+        pndXmatL = self.ndXmat[:, lidx:(k+1)]
+        pnXmatL = self.nXmat[:, lidx:(k+1)]
+        GamkL = GetGammak(pndXmatL, pnXmatL)
+        nlogL = GetNlogk(pndXmatL, pnXmatL, GamkL)
+
+        pndXmatR = self.ndXmat[:, (k+1):uidx]
+        pnXmatR = self.nXmat[:, (k+1):uidx]
+        GamkR = GetGammak(pndXmatR, pnXmatR)
+        nlogR = GetNlogk(pndXmatR, pnXmatR, GamkR)
+
+        return nlogR + nlogL - nlogA
+
+
+    # Obtain the candidate point set via screening
+    def Screening(self, wh=10):
+        """
+        Input:
+            wh: screening window size
+        """
+        if self.midRes is None:
+            self.GetNewData()
+        _, n = self.ndXmat.shape
+        scanStats = []
+        for k in tqdm(range(n), desc="Screening"):
+            if k < (wh-1):
+                scanStats.append(np.inf)
+            elif k >= (n-wh):
+                scanStats.append(np.inf)
+            else:
+                scanStats.append(self.GetScanStats(k, wh))
+
+        self.canpts = []
+        for idx, scanStat in enumerate(scanStats):
+            if (idx >= (wh-1)) and (idx < (n-wh)):
+                lidx = idx - wh + 1
+                uidx = idx + wh + 1
+                if scanStat == np.min(scanStats[lidx:uidx]):
+                    self.canpts.append(idx+1) # adjust the change point such that the starting point is from 1 not 0
+
+
+        
     
     def __call__(self):
         kappa = self.paras.kappa
         Lmin = self.paras.Lmin
         MaxM = self.paras.MaxM
-        
+
         if self.saveDir is not None:
             saveResPath = self.saveDir/f"{self.paras.fName}_Rank{self.paras.r}.pkl"
             if not saveResPath.exists():
                 if self.midRes is None:
                     self.GetNewData()
-                self.finalRes = EGenDy(self.ndXmat, self.nXmat, kappa=kappa, Lmin=Lmin, MaxM=MaxM, is_full=True)
+                self.finalRes = EGenDy(self.ndXmat, self.nXmat, canpts=self.canpts, kappa=kappa, Lmin=Lmin, MaxM=MaxM, is_full=True)
                 self.ecpts = self.finalRes.mbic_ecpts
                 print(f"Save Main Results at {saveResPath}.")
                 MainResults = edict()
@@ -183,6 +236,7 @@ class TVDNDetect:
                 MainResults.Amat = self.Amat
                 MainResults.paras = self.paras
                 MainResults.ptime = self.ptime
+                MainResults.canpts = self.canpts
                 with open(saveResPath, "wb") as f:
                     pickle.dump(MainResults, f)
             else:
@@ -199,7 +253,7 @@ class TVDNDetect:
         else:
             if self.midRes is None:
                 self.GetNewData()
-            self.finalRes = EGenDy(self.ndXmat, self.nXmat, kappa=kappa, Lmin=Lmin, MaxM=MaxM, is_full=True)
+            self.finalRes = EGenDy(self.ndXmat, self.nXmat, canpts=self.canpts, kappa=kappa, Lmin=Lmin, MaxM=MaxM, is_full=True)
             self.ecpts = self.finalRes.mbic_ecpts
             
     # Plot the change point detection results

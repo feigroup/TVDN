@@ -196,7 +196,7 @@ def EGenDy(ndXmat, nXmat, kappa, Lmin=None, canpts=None, MaxM=None, Taget="min",
         canpts = np.array(canpts) - 1
     M0 = len(canpts) # number of change point in candidate point set
 
-    if MaxM is None:
+    if (MaxM is None) or (MaxM>M0):
         MaxM = M0 
     if not (Ms is None or len(Ms)==0):
         MaxM = Ms[-1] if Ms[-1]>=MaxM else MaxM
