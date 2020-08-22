@@ -16,7 +16,7 @@ else:
     from tqdm import tqdm
 
 class TVDNDetect:
-    def __init__(self, Ymat, dataType=None, saveDir=None, **paras):
+    def __init__(self, Ymat, dataType=None, saveDir=None, showProgress=True, **paras):
         """
         Input:
             Ymat: The data matrix, d x n
@@ -91,8 +91,9 @@ class TVDNDetect:
         keys = list(self.paras.keys())
         for key in paras.keys():
             self.paras[key] = paras[key]
-        print("The parameters for detection are:")
-        pprint(self.paras)
+        if showProgress:
+            print("The parameters for detection are:")
+            pprint(self.paras)
         
         if saveDir is not None:
             self.saveDir = Path(saveDir)
@@ -101,6 +102,7 @@ class TVDNDetect:
         else:
             self.saveDir = saveDir
             
+        self.showProgress = showProgress
         self.nYmat = None
         self.Xmat = None
         self.dXmat = None
@@ -196,13 +198,22 @@ class TVDNDetect:
             self.GetNewData()
         _, n = self.ndXmat.shape
         scanStats = []
-        for k in tqdm(range(n), desc="Screening"):
-            if k < (wh-1):
-                scanStats.append(np.inf)
-            elif k >= (n-wh):
-                scanStats.append(np.inf)
-            else:
-                scanStats.append(self.GetScanStats(k, wh))
+        if self.showProgress:
+            for k in tqdm(range(n), desc="Screening"):
+                if k < (wh-1):
+                    scanStats.append(np.inf)
+                elif k >= (n-wh):
+                    scanStats.append(np.inf)
+                else:
+                    scanStats.append(self.GetScanStats(k, wh))
+        else:
+            for k in range(n):
+                if k < (wh-1):
+                    scanStats.append(np.inf)
+                elif k >= (n-wh):
+                    scanStats.append(np.inf)
+                else:
+                    scanStats.append(self.GetScanStats(k, wh))
 
         self.canpts = []
         for idx, scanStat in enumerate(scanStats):
@@ -219,13 +230,14 @@ class TVDNDetect:
         kappa = self.paras.kappa
         Lmin = self.paras.Lmin
         MaxM = self.paras.MaxM
+        r = self.paras.r
 
         if self.saveDir is not None:
             saveResPath = self.saveDir/f"{self.paras.fName}_Rank{self.paras.r}.pkl"
             if not saveResPath.exists():
                 if self.midRes is None:
                     self.GetNewData()
-                self.finalRes = EGenDy(self.ndXmat, self.nXmat, canpts=self.canpts, kappa=kappa, Lmin=Lmin, MaxM=MaxM, is_full=True)
+                self.finalRes = EGenDy(self.ndXmat, self.nXmat, r=r, canpts=self.canpts, kappa=kappa, Lmin=Lmin, MaxM=MaxM, is_full=True, showProgress=self.showProgress)
                 self.ecpts = self.finalRes.mbic_ecpts
                 print(f"Save Main Results at {saveResPath}.")
                 MainResults = edict()
@@ -253,8 +265,9 @@ class TVDNDetect:
         else:
             if self.midRes is None:
                 self.GetNewData()
-            self.finalRes = EGenDy(self.ndXmat, self.nXmat, canpts=self.canpts, kappa=kappa, Lmin=Lmin, MaxM=MaxM, is_full=True)
+            self.finalRes = EGenDy(self.ndXmat, self.nXmat, r=r, canpts=self.canpts, kappa=kappa, Lmin=Lmin, MaxM=MaxM, is_full=True, showProgress=self.showProgress)
             self.ecpts = self.finalRes.mbic_ecpts
+        self.__GetRecResCur()
             
     # Plot the change point detection results
     def PlotEcpts(self, saveFigPath=None):
@@ -341,7 +354,8 @@ class TVDNDetect:
         if self.RecResCur is None:
             self.__GetRecResCur()
         RecYmatCur = self.RecResCur.EstXmatReal
-        MSE = np.mean((RecYmatCur-self.nYmat)**2)
+        MSE = np.sqrt(np.sum((RecYmatCur-self.nYmat)**2)/np.sum(self.nYmat**2))
+        #MSE = np.mean((RecYmatCur-self.nYmat)**2)
         return MSE
 
 
@@ -397,14 +411,22 @@ class TVDNDetect:
             kpidxs = midRes.kpidxs
             eigVecs = midRes.eigVecs
             pbar = tqdm(range(MaxM+1))
-            for numchg in pbar:
-                pbar.set_description(f"Kappa Tuning")
-        #        print(f"Current number of change point is {numchg}.")
-                if numchg == 0:
-                    RecResCur = ReconXmat([], ndXmat, nXmat, kpidxs, eigVecs, self.nYmat, tStep, r=r, is_full=True) 
-                else:
-                    RecResCur = ReconXmat(finalRes.chgMat[numchg-1, :numchg], ndXmat, nXmat, kpidxs, eigVecs, self.nYmat, tStep, r=r, is_full=True) 
-                RecYmatAll.append(RecResCur)
+            if self.showProgress:
+                for numchg in pbar:
+                    pbar.set_description(f"Kappa Tuning")
+        #            print(f"Current number of change point is {numchg}.")
+                    if numchg == 0:
+                        RecResCur = ReconXmat([], ndXmat, nXmat, kpidxs, eigVecs, self.nYmat, tStep, r=r, is_full=True) 
+                    else:
+                        RecResCur = ReconXmat(finalRes.chgMat[numchg-1, :numchg], ndXmat, nXmat, kpidxs, eigVecs, self.nYmat, tStep, r=r, is_full=True) 
+                    RecYmatAll.append(RecResCur)
+            else:
+                for numchg in range(MaxM+1):
+                    if numchg == 0:
+                        RecResCur = ReconXmat([], ndXmat, nXmat, kpidxs, eigVecs, self.nYmat, tStep, r=r, is_full=True) 
+                    else:
+                        RecResCur = ReconXmat(finalRes.chgMat[numchg-1, :numchg], ndXmat, nXmat, kpidxs, eigVecs, self.nYmat, tStep, r=r, is_full=True) 
+                    RecYmatAll.append(RecResCur)
             self.RecYmatAll = RecYmatAll
     
     
@@ -415,9 +437,10 @@ class TVDNDetect:
         MaxM = self.paras.MaxM
         U0 = self.finalRes.U0 
         rAct, n = self.midRes.nXmat.shape
+        r = self.paras.r
         Us = []
         for kappac in kappas:
-            Us.append(U0 + 2*rAct*np.log(n)**kappac* (np.arange(1, MaxM+2)))
+            Us.append(U0 + 2*r*np.log(n)**kappac* (np.arange(1, MaxM+2)))
         Us = np.array(Us)
         numchgs = Us.argmin(axis=1)
         self.numchgs = numchgs
@@ -438,7 +461,8 @@ class TVDNDetect:
         MSEs = []
         for i in range(MaxM+1):
             RecYmatCur = self.RecYmatAll[i].EstXmatReal
-            MSE = np.mean((RecYmatCur-self.nYmat)**2)
+            #MSE = np.mean((RecYmatCur-self.nYmat)**2)
+            MSE = np.sqrt(np.sum((RecYmatCur-self.nYmat)**2)/np.sum(self.nYmat**2))
             MSEs.append(MSE)
         self.MSEs = MSEs
         

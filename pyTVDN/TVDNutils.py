@@ -6,6 +6,7 @@ The input and output of the functions use R index method (i.e., start from 1 not
 
 # import needed packages
 import numpy as np
+from numpy.linalg import inv, svd
 from scipy.stats import multivariate_normal as mnorm
 from easydict import EasyDict as edict
 from .utils import in_notebook
@@ -58,7 +59,7 @@ def GetAmat(dXmat, Xmat, time, downrate=1, fct=1):
         kerXmat = kernelroot[:, np.newaxis] * (Xmat.T) # n x d
         M = kerXmat.T.dot(kerXmat)/n
         XY = kerdXmat.T.dot(kerXmat)/n
-        U, S, VT = np.linalg.svd(M)
+        U, S, VT = svd(M)
         # Num of singular values to keep
         # r = np.argmax(np.cumsum(S)/np.sum(S) > 0.999) + 1 # For simulation
         r = np.argmax(np.cumsum(S)/np.sum(S) >= 0.999) + 1 # For real data
@@ -82,7 +83,7 @@ def GetNewEst(dXmat, Xmat, Amat, r, is_full=False):
     eigVals, eigVecs = np.linalg.eig(Amat)
     eigValsfull = np.concatenate([[np.Inf], eigVals])
     kpidxs = np.where(np.diff(np.abs(eigValsfull))[:r] != 0)[0]
-    eigVecsInv = np.linalg.inv(eigVecs)
+    eigVecsInv = inv(eigVecs)
     tXmat = eigVecsInv[kpidxs, :].dot(Xmat)
     tdXmat = eigVecsInv[kpidxs, :].dot(dXmat)
     nrow, _ = tXmat.shape
@@ -137,7 +138,7 @@ def GetNlogk(pndXmat, pnXmat, Gamk):
     _, nj = pndXmat.shape
     resd = pndXmat - Gamk.dot(pnXmat)
     SigMat = resd.dot(resd.T)/nj
-    U, S, VT = np.linalg.svd(SigMat)
+    U, S, VT = svd(SigMat)
     kpidx = np.where(S > (S[0]*1.490116e-8))[0]
     newResd = (U[:, kpidx].T.dot(resd)).T
     meanV = np.zeros(newResd.shape[1])
@@ -146,12 +147,13 @@ def GetNlogk(pndXmat, pnXmat, Gamk):
 
 
 # Effcient dynamic programming to optimize the MBIC, 
-def EGenDy(ndXmat, nXmat, kappa, Lmin=None, canpts=None, MaxM=None, Taget="min", is_full=False, Ms=None):
+def EGenDy(ndXmat, nXmat, kappa, r, Lmin=None, canpts=None, MaxM=None, Taget="min", is_full=False, Ms=None, showProgress=True):
     """
     Input:
     ndXmat: array, rAct x n. n is length of sequence. 
     nXmat: array, rAct x n. n is length of sequence. 
     kappa: The parameter of penalty
+    r: The rank of detection
     Lmin: The minimal length between 2 change points
     canpts: candidate point set. list or array,  index should be from 1
     MaxM: int, maximal number of change point 
@@ -207,10 +209,16 @@ def EGenDy(ndXmat, nXmat, kappa, Lmin=None, canpts=None, MaxM=None, Taget="min",
     Hmat = np.zeros((M0+1, M0+1)) + decon
 
     # create a matrix 
-    for ii in tqdm(range(M0+1), desc="Main Loop"):
-        for jj in range(ii, M0+1):
-            iidx, jjdx = canpts_full1[ii],  canpts_full2[jj]
-            Hmat[ii, jj]  = _nloglk(iidx, jjdx)
+    if showProgress:
+        for ii in tqdm(range(M0+1), desc="Dynamic Programming"):
+            for jj in range(ii, M0+1):
+                iidx, jjdx = canpts_full1[ii],  canpts_full2[jj]
+                Hmat[ii, jj]  = _nloglk(iidx, jjdx)
+    else:
+        for ii in range(M0+1):
+            for jj in range(ii, M0+1):
+                iidx, jjdx = canpts_full1[ii],  canpts_full2[jj]
+                Hmat[ii, jj]  = _nloglk(iidx, jjdx)
 
     # vector contains results for each number of change point
     U = np.zeros(MaxM+1) 
@@ -231,7 +239,7 @@ def EGenDy(ndXmat, nXmat, kappa, Lmin=None, canpts=None, MaxM=None, Taget="min",
         U[k+1] = D[0]
         tau_mat[k, 0:(k+1)] = Pos[0, 0:(k+1)] - 1
     U0 = U 
-    U = U + 2*rAct*np.log(n)**kappa* (np.arange(1, MaxM+2))
+    U = U + 2*r*np.log(n)**kappa* (np.arange(1, MaxM+2))
     chgMat = np.zeros(tau_mat.shape) + np.inf
     for iii in range(chgMat.shape[0]):
         idx = tau_mat[iii,: ]
@@ -318,10 +326,12 @@ def ReconXmat(ecpts, ndXmat, nXmat, kpidxs, eigVecs, Ymat, tStep, r, is_full=Fal
     
     EstXmat = np.zeros((d, n), dtype=np.complex)
     EstXmat[:, 0] = Ymat[:, 0]
+    invEigVecsr = inv(eigVecs)[:r, :]
+    eigVecsr = eigVecs[:, :r]
     for i in range(1, n):
         mTerm = np.diag(LamMs[:, i])
-        rTerm = np.linalg.inv(eigVecs)[:r, :].dot(EstXmat[:, i-1])
-        EstXmat[:, i] = eigVecs[:, :r].dot(mTerm).dot(rTerm) * tStep + EstXmat[:,i-1]
+        rTerm = invEigVecsr.dot(EstXmat[:, i-1])
+        EstXmat[:, i] = eigVecsr.dot(mTerm).dot(rTerm) * tStep + EstXmat[:,i-1]
     if is_full:
         ReDict = edict()
         ReDict.EstXmatReal = EstXmat.real
@@ -331,3 +341,79 @@ def ReconXmat(ecpts, ndXmat, nXmat, kpidxs, eigVecs, Ymat, tStep, r, is_full=Fal
         return EstXmat.real
 
 
+# Reconstruct Xmat from results for CV
+# i.e., the full Xmat is longer than the Ymatk used in detection
+def ReconXmatCV(ecpts, ndXmat, nXmat, kpidxs, eigVecs, Ymat, tStep, r, adjFct, nFull, is_full=False):
+    """
+    Input: 
+        ecpts: Estimated change points, 
+        ndXmat: a rAct x n matrix
+        nXmat: a rAct x n matrix
+        kpidxs: The intermedian output when calculating ndXmat, nXmat
+        eigVecs: The matrix of eigen vectors of A matrix, d x d
+        Ymat: The matrix to construct, d x n 
+        tStep: The time step, which is based on the length of reconstructed Xmat
+        r: The rank setted beforehand, in most cases, r=rAct. If we have non-complex singular values, r < rAct
+        adjFct: The factor to adjust the change points
+        nFull: The full length of the sequence
+        if_full: Where outputing full info or not
+
+    Return:
+        Estimated Xmat, d x n
+    """
+    rAct, n = ndXmat.shape
+    d, _ = Ymat.shape
+    ecptsfull = np.concatenate(([0], ecpts, [n])) - 1
+    ecptsfull = ecptsfull.astype(np.int)
+
+    if len(ecpts) == 0:
+        adjEcptsFull = np.concatenate(([0], ecpts, [nFull])) - 1
+    else:
+        adjEcpts = np.round(ecpts * adjFct, 0)
+        adjEcptsFull = np.concatenate(([0], adjEcpts, [nFull])) - 1
+    # The adjusted locations of change points
+    adjEcptsFull = adjEcptsFull.astype(np.int)
+    
+    numchgfull = len(ecptsfull)
+
+    ResegS = np.zeros((numchgfull-1, r), dtype=np.complex)
+    for  itr in range(numchgfull-1):
+        lower = ecptsfull[itr] + 1
+        upper = ecptsfull[itr+1] + 1
+        Ycur = ndXmat[:, lower:upper]
+        Xcur = nXmat[:, lower:upper]
+        lams = np.zeros(r, dtype=np.complex) + np.inf
+        for j in range(int(rAct/2)):
+            tY = Ycur[(2*j):(2*j+2), :]
+            tX = Xcur[(2*j):(2*j+2), :]
+            corY = tY.dot(tX.T)
+            corX = np.trace(tX.dot(tX.T))
+            a = np.trace(corY)/corX
+            b = (corY[1, 0] - corY[0, 1])/corX
+            lams[kpidxs[j]] = a + b*1j
+        tmpIdx = np.where(lams==np.inf)[0]
+        lams[tmpIdx] = np.conjugate(lams[tmpIdx-1])
+        ResegS[itr, :] = lams
+    
+    LamMs = np.zeros((r, nFull), dtype=np.complex)
+    LamMs[:, 0] = ResegS[0, :]
+    for itr in range(1, numchgfull):
+        lower = adjEcptsFull[itr-1] + 1
+        upper = adjEcptsFull[itr] + 1
+        LamMs[:, lower:upper] = ResegS[itr-1, ].reshape(-1, 1)
+    
+    EstXmat = np.zeros((d, nFull), dtype=np.complex)
+    EstXmat[:, 0] = Ymat[:, 0]
+    invEigVecsr = inv(eigVecs)[:r, :]
+    eigVecsr = eigVecs[:, :r]
+    for i in range(1, nFull):
+        mTerm = np.diag(LamMs[:, i])
+        rTerm = invEigVecsr.dot(EstXmat[:, i-1])
+        EstXmat[:, i] = eigVecsr.dot(mTerm).dot(rTerm) * tStep + EstXmat[:,i-1]
+    if is_full:
+        ReDict = edict()
+        ReDict.EstXmatReal = EstXmat.real
+        ReDict.LamMs = LamMs
+        return ReDict
+    else:
+        return EstXmat.real
