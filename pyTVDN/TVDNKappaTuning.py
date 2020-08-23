@@ -1,12 +1,16 @@
 from easydict import EasyDict as edict
-import numpy as np
 from scipy.signal import detrend
+import numpy as np
 from .Rfuns import decimate_R
 from .TVDNclass import TVDNDetect
 from .TVDNutils import ReconXmatCV
+from .utils import in_notebook
+if in_notebook():
+    from tqdm import tqdm_notebook as tqdm
+else:
+    from tqdm import tqdm
 
 # Tuning the kappa w.r.t MSE based on CV
-                                         
 def TVDNKappaTuningCV(kappas, Ymat, numFold=10, numTimes=None, randomSel=False, wh=None, dataType=None, saveDir=None, **paras):
     """
     Input:
@@ -34,11 +38,7 @@ def TVDNKappaTuningCV(kappas, Ymat, numFold=10, numTimes=None, randomSel=False, 
             plotfct: The factor to adjust the time course when plotting
             freq: The parameter used drawing the eigen values plots
     Return:
-        A dict containing:
-            1. Optimal rank in the given ranks
-            2. Optimal kappa in the given kappas
-            3. The detection object under the optimal rank and kappa
-            4. The minimal MSE in the given ranks and kappas
+       Optimal Kappa in kappas
     """
     paras = edict(paras)
     kappas = np.array(kappas)
@@ -51,14 +51,17 @@ def TVDNKappaTuningCV(kappas, Ymat, numFold=10, numTimes=None, randomSel=False, 
         dataType = dataType
     
     if dataType == "meg":
-        is_detrend = True
+        is_detrend = False
         decimateRate = 10
+        fName = "MEG"
     elif dataType == "fmri":
         is_detrend = False
         decimateRate = None
+        fName = "fMRI"
     else:
         is_detrend = False
         decimateRate = None
+        fName = "others"
 
     if "is_detrend" in paras.keys():
         is_detrend = paras["is_detrend"]
@@ -72,6 +75,9 @@ def TVDNKappaTuningCV(kappas, Ymat, numFold=10, numTimes=None, randomSel=False, 
         for i in range(Ymat.shape[0]):
             YmatList.append(decimate_R(Ymat[i, :], decimateRate))
         Ymat = np.array(YmatList)
+    
+    if "fName" in paras.keys():
+        fName = paras["fName"]
 
     paras["is_detrend"] = False
     paras["decimateRate"] = None
@@ -84,18 +90,19 @@ def TVDNKappaTuningCV(kappas, Ymat, numFold=10, numTimes=None, randomSel=False, 
     if numTimes is None:
         numTimes = numFold
     
-    for k in range(numTimes):
-        print("="*50)
-        print(f"The {k+1}th/{numTimes} cross validation.")
-        if randomSel:
+    for k in tqdm(range(numTimes),  desc="Cross Validation"):
+        #print("="*100)
+        #print(f"The {k+1}th/{numTimes} cross validation.")
+        paras["fName"] = f"{fName}_{k+1}th"
+        if not randomSel:
             idxs = np.arange(n, step=numFold)+k
             idxs = idxs[idxs<n]
         else:
-            idxs = np.random.choice(n, size=int(n/numFold), replace=False)
+            idxs = np.sort(np.random.choice(n, size=int(n/numFold), replace=False))
 
         Ymatk = np.delete(Ymat, idxs, axis=1)
         Ymatidxs = Ymat[:, idxs]
-        detection = TVDNDetect(Ymat=Ymatk, dataType=dataType, saveDir=saveDir, showParas=False, **paras)
+        detection = TVDNDetect(Ymat=Ymatk, dataType=dataType, saveDir=saveDir, showProgress=False, **paras)
         r = detection.paras.r
         MaxM = detection.paras.MaxM
         if wh is not None:
@@ -119,15 +126,15 @@ def TVDNKappaTuningCV(kappas, Ymat, numFold=10, numTimes=None, randomSel=False, 
         kpidxs = midRes.kpidxs
         eigVecs = midRes.eigVecs
         MSEs = []
-        for numchg in numchgs:
+        for numchg in range(MaxM+1):
             if numchg == 0:
                 RecYmatCV = ReconXmatCV([], ndXmat, nXmat, kpidxs, eigVecs, Ymat, tStep, r=r, adjFct=adjFct, nFull=n, is_full=False) 
             else:
                 RecYmatCV = ReconXmatCV(detection.finalRes.chgMat[numchg-1, :numchg], ndXmat, nXmat, kpidxs, eigVecs, Ymat, tStep, 
                                         r=r, adjFct=adjFct, nFull=n, is_full=False) 
             RecYmatCVidxs = RecYmatCV[:, idxs]
-            MSE = np.mean((RecYmatCVidxs-Ymatidxs)**2)
-            #MSE = np.sqrt(np.sum((RecYmatCVidxs-Ymatidxs)**2)/np.sum(Ymatidxs**2))
+            #MSE = np.mean((RecYmatCVidxs-Ymatidxs)**2)
+            MSE = np.sqrt(np.sum((RecYmatCVidxs-Ymatidxs)**2)/np.sum(Ymatidxs**2))
             MSEs.append(MSE)
         MSEsKappa = [MSEs[i] for i in numchgs]
         MSEssKappa.append(MSEsKappa)
@@ -138,6 +145,4 @@ def TVDNKappaTuningCV(kappas, Ymat, numFold=10, numTimes=None, randomSel=False, 
     bestKappa = kappas[bestKappaIdx]
 
     return bestKappa
-
-
 
