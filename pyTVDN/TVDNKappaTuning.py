@@ -144,5 +144,9 @@ def TVDNKappaTuningCV(kappas, Ymat, numFold=10, numTimes=None, randomSel=False, 
     bestKappaIdx = np.argmin(MSEssAv)
     bestKappa = kappas[bestKappaIdx]
 
-    return bestKappa
+    res = edict()
+    res["bestKappa"] = bestKappa
+    res["MSEs"] = MSEssAv
+
+    return res 
 
