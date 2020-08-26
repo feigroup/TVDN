@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import pickle
 from easydict import EasyDict as edict
 from prettytable import PrettyTable
+import warnings
 from .TVDNutils import *
 from .Rfuns import decimate_R
 from .utils import in_notebook
@@ -286,17 +287,36 @@ class TVDNDetect:
         
     
     # Plot reconstructed Ymat curve 
-    def PlotRecCurve(self, idxs, saveFigPath=None):
+    def PlotRecCurve(self, idxs=None, bestK=None, quantiles=None, saveFigPath=None):
         """
         idxs: The indices of the sequences to plot 
+        bestK: The best K fitted curves to plot according to the errors
+        quantiles: The fitted sequences to plot according to the quantiles of errors.
+        (priority: idxs > bestK > quantiles)_
         """
         assert self.finalRes is not None, "Run main function first!"
+        if idxs is not None and (bestK is not None or quantiles is not None):
+            warnings.warn("idxs is provided, so bestK or quantiles will be ignored", UserWarning)
+        if idxs is None and bestK is not None and quantiles is not None:
+            warnings.warn("bestK is provided, so quantiles will be ignored", UserWarning)
         if self.RecResCur is None:
             self.__GetRecResCur()
-        d, n = self.nYmat.shape
-        numChgCur = len(self.ecpts)
         RecYmatCur = self.RecResCur.EstXmatReal
-        assert d>=np.max(idxs) & np.min(idxs)>=0, "Wrong index!"
+        d, n = self.nYmat.shape
+        if idxs is not None:
+            assert d>=np.max(idxs) & np.min(idxs)>=0, "Wrong index!"
+        else:
+            diff = RecYmatCur - self.nYmat
+            errs2 = np.sum(diff**2, axis=1)/np.sum(self.nYmat**2, axis=1)
+            errs = np.sqrt(errs2)
+            argidxs = np.argsort(errs)
+            if quantiles is None and bestK is None:
+                qidxs = np.quantile(np.arange(d), [0, 0.25, 0.5, 0.75, 1]).astype(np.int)
+            elif bestK is not None:
+                qidxs = argidxs[:bestK]
+            else:
+                qidxs = np.quantile(np.arange(d), quantiles).astype(np.int)
+            idxs = argidxs[qidxs]
         
         
         numSubPlot = len(idxs)
