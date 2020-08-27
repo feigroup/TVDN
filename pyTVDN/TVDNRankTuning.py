@@ -48,7 +48,7 @@ def TVDNRankTuning(ranks, kappas, Ymat, dataType=None, saveDir=None, **paras):
         print("="*50)
         print(f"The current rank is {rank}.")
         paras["r"] = rank
-        detection = TVDNDetect(Ymat=Ymat, dataType=dataType, saveDir=saveDir, **paras)
+        detection = TVDNDetect(Ymat=Ymat, dataType=dataType, saveDir=saveDir, showProgress=True, **paras)
         detection()
         if len(kappas) == 1:
             MSE = detection.GetCurMSE()

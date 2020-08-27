@@ -139,14 +139,12 @@ class TVDNDetect:
             self.nYmat = nYmat
         _, n = self.nYmat.shape
         self.ptime = np.linspace(0, self.paras.T, n) * self.paras.plotfct
+        self.time = np.linspace(0, self.paras.T, n)
     
     def GetBsplineEst(self):
         if self.nYmat is None:
             self._Preprocess()
-        d, n = self.nYmat.shape
-        T = self.paras.T
         lamb = self.paras.lamb
-        self.time = np.linspace(0, T, n)
         self.dXmat, self.Xmat = GetBsplineEst(self.nYmat, self.time, lamb=lamb)
     
     def GetAmat(self):
@@ -253,6 +251,7 @@ class TVDNDetect:
                 with open(saveResPath, "wb") as f:
                     pickle.dump(MainResults, f)
             else:
+                warnings.warn("As loading the saved results, kappa will be ignored", UserWarning)
                 with open(saveResPath, "rb") as f:
                     MainResults = pickle.load(f)
                     self.finalRes = MainResults.finalRes
@@ -481,8 +480,8 @@ class TVDNDetect:
         MSEs = []
         for i in range(MaxM+1):
             RecYmatCur = self.RecYmatAll[i].EstXmatReal
-            #MSE = np.mean((RecYmatCur-self.nYmat)**2)
             MSE = np.sqrt(np.sum((RecYmatCur-self.nYmat)**2)/np.sum(self.nYmat**2))
+            #MSE = np.mean((RecYmatCur-self.nYmat)**2)
             MSEs.append(MSE)
         self.MSEs = MSEs
         
@@ -491,7 +490,32 @@ class TVDNDetect:
         MSEsKappa = [MSEs[i] for i in numchgs]
         self.optKappa = kappas[np.argmin(MSEsKappa)]
         self.optKappaOptNumChg = numchgs[np.argmin(MSEsKappa)]
+        self.kappas = kappas
+
+    def PlotKappaErrCurve(self):
+        assert self.MSEs is not None, "Run the TuningKappa first!"
+        MSEs = np.array(self.MSEs)
+        numchgs = np.array(self.numchgs)
+        plt.figure(figsize=[15, 5])
+
+        plt.subplot(131)
+        plt.plot(self.kappas, MSEs[numchgs])
+        plt.ylabel("Error")
+        _ = plt.xlabel("Kappa")
+
+        plt.subplot(132)
+        plt.plot(self.kappas, numchgs)
+        plt.ylabel("Num of Change points")
+        _ = plt.xlabel("Kappa")
+
+        plt.subplot(133)
+        plt.plot(MSEs)
+        plt.xlabel("Num of Change points")
+        _ = plt.ylabel("Error")
+        plt.show()
+
     
+
     def UpdateEcpts(self, numChg=None):
         assert self.finalRes is not None, "Run main function first!"
         if numChg is None:
