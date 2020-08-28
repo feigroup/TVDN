@@ -347,7 +347,8 @@ class TVDNDetect:
         ImLamMs = LamMs.imag*freq /((2*np.pi)*(acTime/self.paras.T))
         cols = sns.color_palette("Paired", ReLamMs.shape[0])
         
-        plt.figure(figsize=[20,10])
+        plt.figure(figsize=[10, 5])
+        plt.subplots_adjust(wspace=0.5, hspace=0.5)
         plt.subplot(121)
         for i in range(ReLamMs.shape[0]):
             plt.plot(self.ptime, ReLamMs[i, :], label=f"Lam {i+1}", 
@@ -429,8 +430,8 @@ class TVDNDetect:
             nXmat = midRes.nXmat
             kpidxs = midRes.kpidxs
             eigVecs = midRes.eigVecs
-            pbar = tqdm(range(MaxM+1))
             if self.showProgress:
+                pbar = tqdm(range(MaxM+1))
                 for numchg in pbar:
                     pbar.set_description(f"Kappa Tuning")
         #            print(f"Current number of change point is {numchg}.")
