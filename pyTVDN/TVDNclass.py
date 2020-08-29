@@ -286,7 +286,7 @@ class TVDNDetect:
         
     
     # Plot reconstructed Ymat curve 
-    def PlotRecCurve(self, idxs=None, bestK=None, quantiles=None, saveFigPath=None):
+    def PlotRecCurve(self, idxs=None, bestK=None, quantiles=None, saveFigPath=None, is_imag=False):
         """
         idxs: The indices of the sequences to plot 
         bestK: The best K fitted curves to plot according to the errors
@@ -300,7 +300,10 @@ class TVDNDetect:
             warnings.warn("bestK is provided, so quantiles will be ignored", UserWarning)
         if self.RecResCur is None:
             self.__GetRecResCur()
-        RecYmatCur = self.RecResCur.EstXmatReal
+        if is_imag:
+            RecYmatCur = self.RecResCur.EstXmatImag
+        else:
+            RecYmatCur = self.RecResCur.EstXmatReal
         d, n = self.nYmat.shape
         if idxs is not None:
             assert d>=np.max(idxs) & np.min(idxs)>=0, "Wrong index!"

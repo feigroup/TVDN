@@ -335,6 +335,7 @@ def ReconXmat(ecpts, ndXmat, nXmat, kpidxs, eigVecs, Ymat, tStep, r, is_full=Fal
     if is_full:
         ReDict = edict()
         ReDict.EstXmatReal = EstXmat.real
+        ReDict.EstXmatImag = EstXmat.imag
         ReDict.LamMs = LamMs
         return ReDict
     else:
@@ -413,6 +414,7 @@ def ReconXmatCV(ecpts, ndXmat, nXmat, kpidxs, eigVecs, Ymat, tStep, r, adjFct, n
     if is_full:
         ReDict = edict()
         ReDict.EstXmatReal = EstXmat.real
+        ReDict.EstXmatImag = EstXmat.imag
         ReDict.LamMs = LamMs
         return ReDict
     else:
