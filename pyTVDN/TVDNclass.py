@@ -319,6 +319,8 @@ class TVDNDetect:
             else:
                 qidxs = np.quantile(np.arange(d), quantiles).astype(np.int)
             idxs = argidxs[qidxs]
+        if self.showProgress:
+            print(f"The plot indices are {idxs}.")
         
         
         numSubPlot = len(idxs)
@@ -328,7 +330,8 @@ class TVDNDetect:
 
         for i, idx, in enumerate(idxs):
             plt.subplot(numRow, 3, i+1)
-            plt.plot(self.ptime, self.nYmat[idx, :], label="Observed")
+            if not is_imag:
+                plt.plot(self.ptime, self.nYmat[idx, :], label="Observed")
             plt.plot(self.ptime, RecYmatCur[idx, :], label="Estimated")
             plt.legend()
         if saveFigPath is None:
