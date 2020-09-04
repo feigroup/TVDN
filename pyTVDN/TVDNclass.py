@@ -286,7 +286,7 @@ class TVDNDetect:
         
     
     # Plot reconstructed Ymat curve 
-    def PlotRecCurve(self, idxs=None, bestK=None, quantiles=None, saveFigPath=None, is_imag=False):
+    def PlotRecCurve(self, idxs=None, bestK=None, quantiles=None, saveFigPath=None, is_imag=False, is_bsp=False):
         """
         idxs: The indices of the sequences to plot 
         bestK: The best K fitted curves to plot according to the errors
@@ -331,8 +331,10 @@ class TVDNDetect:
         for i, idx, in enumerate(idxs):
             plt.subplot(numRow, 3, i+1)
             if not is_imag:
-                plt.plot(self.ptime, self.nYmat[idx, :], label="Observed")
-            plt.plot(self.ptime, RecYmatCur[idx, :], label="Estimated")
+                plt.plot(self.ptime, self.nYmat[idx, :], "-", label="Observed")
+            plt.plot(self.ptime, RecYmatCur[idx, :], "-.", label="Reconstructed")
+            if is_bsp:
+                plt.plot(self.ptime, self.Xmat[idx, :], "r--", label="B-spline Estimator")
             plt.legend()
         if saveFigPath is None:
             plt.show() 
