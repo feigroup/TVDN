@@ -17,7 +17,7 @@ else:
     from tqdm import tqdm
 
 class TVDNDetect:
-    def __init__(self, Ymat, dataType=None, saveDir=None, showProgress=True, **paras):
+    def __init__(self, Ymat, smoothType="Bspline", dataType=None, saveDir=None, showProgress=True, **paras):
         """
         Input:
             Ymat: The data matrix, d x n
@@ -46,6 +46,11 @@ class TVDNDetect:
         else:
             self.dataType = dataType
 
+        if smoothType is not None:
+            self.smoothType = smoothType.lower()
+        else:
+            self.smoothType = smoothType
+
 
         if self.dataType == "meg":
             self.paras.kappa = 2.65
@@ -61,6 +66,7 @@ class TVDNDetect:
             self.paras.fName = "MEG"
             self.paras.plotfct = 30
             self.paras.freq = 60
+            self.paras.nbasis = 10
         elif self.dataType == "fmri":
             self.paras.kappa = 2.65
             self.paras.Lmin = 4
@@ -75,6 +81,7 @@ class TVDNDetect:
             self.paras.fName = "fMRI"
             self.paras.plotfct = 180
             self.paras.freq = 0.5
+            self.paras.nbasis = 10
         else:
             self.paras.kappa = 2.65
             self.paras.Lmin = 4
@@ -89,6 +96,7 @@ class TVDNDetect:
             self.paras.fName = "simu"
             self.paras.plotfct = 1
             self.paras.freq = 180
+            self.paras.nbasis = 10
         keys = list(self.paras.keys())
         for key in paras.keys():
             self.paras[key] = paras[key]
@@ -141,17 +149,19 @@ class TVDNDetect:
         self.ptime = np.linspace(0, self.paras.T, n) * self.paras.plotfct
         self.time = np.linspace(0, self.paras.T, n)
     
-    def GetBsplineEst(self):
+    def SmoothEst(self):
         if self.nYmat is None:
             self._Preprocess()
-        lamb = self.paras.lamb
-        self.dXmat, self.Xmat = GetBsplineEst(self.nYmat, self.time, lamb=lamb)
+        if self.smoothType == "bspline":
+            self.dXmat, self.Xmat = GetBsplineEst(self.nYmat, self.time, lamb=self.paras.lamb)
+        elif self.smoothType == "fourier":
+            self.dXmat, self.Xmat = GetFourierEst(self.nYmat, self.time, nbasis=self.paras.nbasis)
     
     def GetAmat(self):
         downRate = self.paras.downRate
         fct = self.paras.fct
         if self.dXmat is None:
-            self.GetBsplineEst()
+            self.SmoothEst()
         self.Amat = GetAmat(self.dXmat, self.Xmat, self.time, downRate, fct=fct)
     
     
@@ -286,7 +296,7 @@ class TVDNDetect:
         
     
     # Plot reconstructed Ymat curve 
-    def PlotRecCurve(self, idxs=None, bestK=None, quantiles=None, saveFigPath=None, is_imag=False, is_bsp=False):
+    def PlotRecCurve(self, idxs=None, bestK=None, quantiles=None, saveFigPath=None, is_imag=False, is_smoothCurve=False):
         """
         idxs: The indices of the sequences to plot 
         bestK: The best K fitted curves to plot according to the errors
@@ -333,8 +343,8 @@ class TVDNDetect:
             if not is_imag:
                 plt.plot(self.ptime, self.nYmat[idx, :], "-", label="Observed")
             plt.plot(self.ptime, RecYmatCur[idx, :], "-.", label="Reconstructed")
-            if is_bsp:
-                plt.plot(self.ptime, self.Xmat[idx, :], "r--", label="B-spline Estimator")
+            if is_smoothCurve:
+                plt.plot(self.ptime, self.Xmat[idx, :], "r--", label=f"{self.smoothType} Estimator")
             plt.legend()
         if saveFigPath is None:
             plt.show() 
