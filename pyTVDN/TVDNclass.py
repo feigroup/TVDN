@@ -277,7 +277,7 @@ class TVDNDetect:
                 self.GetNewData()
             self.finalRes = EGenDy(self.ndXmat, self.nXmat, r=r, canpts=self.canpts, kappa=kappa, Lmin=Lmin, MaxM=MaxM, is_full=True, showProgress=self.showProgress)
             self.ecpts = self.finalRes.mbic_ecpts
-        self.__GetRecResCur()
+        self.GetRecResCur()
             
     # Plot the change point detection results
     def PlotEcpts(self, saveFigPath=None):
@@ -309,7 +309,7 @@ class TVDNDetect:
         if idxs is None and bestK is not None and quantiles is not None:
             warnings.warn("bestK is provided, so quantiles will be ignored", UserWarning)
         if self.RecResCur is None:
-            self.__GetRecResCur()
+            self.GetRecResCur()
         if is_imag:
             RecYmatCur = self.RecResCur.EstXmatImag
         else:
@@ -350,12 +350,14 @@ class TVDNDetect:
             plt.show() 
         else:
             plt.savefig(saveFigPath)
+
+        return idxs
     
     # Plot the eigen value curve
     def PlotEigenCurve(self, saveFigPath=None):
         assert self.finalRes is not None, "Run main function first!"
         if self.RecResCur is None:
-            self.__GetRecResCur()
+            self.GetRecResCur()
         freq = self.paras.freq
         numChgCur = len(self.ecpts)
         LamMs = self.RecResCur.LamMs
@@ -390,14 +392,14 @@ class TVDNDetect:
     def GetCurMSE(self):
         assert self.finalRes is not None, "Run main function first!"
         if self.RecResCur is None:
-            self.__GetRecResCur()
+            self.GetRecResCur()
         RecYmatCur = self.RecResCur.EstXmatReal
         MSE = np.sqrt(np.sum((RecYmatCur-self.nYmat)**2)/np.sum(self.nYmat**2))
         #MSE = np.mean((RecYmatCur-self.nYmat)**2)
         return MSE
 
 
-    def __GetRecResCur(self):
+    def GetRecResCur(self):
         numchg = len(self.ecpts)
         if self.RecYmatAll is not None:
             self.RecResCur = self.RecYmatAll[numchg]
@@ -434,7 +436,7 @@ class TVDNDetect:
             eigVecs = midRes.eigVecs
             self.RecResCur = ReconXmat(finalRes.chgMat[numchg-1, :numchg], ndXmat, nXmat, kpidxs, eigVecs, self.nYmat, tStep, r=r, is_full=True) 
     
-    def __GetRecYmats(self):
+    def GetRecYmats(self):
         if self.RecYmatAll is None:
             RecYmatAll = []
             MaxM = self.paras.MaxM
@@ -487,14 +489,14 @@ class TVDNDetect:
         if self.saveDir is not None:
             RecYmatAllPath = self.saveDir/f"{self.paras.fName}_Rank{self.paras.r}_RecAll.pkl"
             if not RecYmatAllPath.exists():
-                self.__GetRecYmats()
+                self.GetRecYmats()
                 with open(RecYmatAllPath, "wb") as f:
                     pickle.dump(self.RecYmatAll, f)
             else:
                 with open(RecYmatAllPath, "rb") as f:
                     self.RecYmatAll = pickle.load(f)
         else:
-            self.__GetRecYmats()
+            self.GetRecYmats()
             
         MSEs = []
         for i in range(MaxM+1):
@@ -544,7 +546,7 @@ class TVDNDetect:
             self.ecpts = []
         else:
             self.ecpts = self.finalRes.chgMat[numChg-1, :numChg]
-        self.__GetRecResCur()
+        self.GetRecResCur()
     
 
     def __str__(self):
