@@ -152,6 +152,9 @@ class TVDNDetect:
     def SmoothEst(self):
         if self.nYmat is None:
             self._Preprocess()
+        _, n = self.nYmat.shape
+        self.ptime = np.linspace(0, self.paras.T, n) * self.paras.plotfct
+        self.time = np.linspace(0, self.paras.T, n)
         if self.smoothType == "bspline":
             self.dXmat, self.Xmat = GetBsplineEst(self.nYmat, self.time, lamb=self.paras.lamb)
         elif self.smoothType == "fourier":
@@ -251,6 +254,7 @@ class TVDNDetect:
                 print(f"Save Main Results at {saveResPath}.")
                 MainResults = edict()
                 MainResults.nYmat = self.nYmat
+                MainResults.Xmat = self.Xmat
                 MainResults.Ymat = self.Ymat
                 MainResults.midRes = self.midRes
                 MainResults.finalRes = self.finalRes
@@ -344,6 +348,8 @@ class TVDNDetect:
                 plt.plot(self.ptime, self.nYmat[idx, :], "-", label="Observed")
             plt.plot(self.ptime, RecYmatCur[idx, :], "-.", label="Reconstructed")
             if is_smoothCurve:
+                if self.Xmat is None:
+                    self.SmoothEst()
                 plt.plot(self.ptime, self.Xmat[idx, :], "r--", label=f"{self.smoothType} Estimator")
             plt.legend()
         if saveFigPath is None:
