@@ -61,7 +61,7 @@ class TVDNDetect:
             self.paras.downRate = 20
             self.paras.decimateRate = 10
             self.paras.T = 2
-            self.paras.is_detrend = False
+            self.paras.is_detrend = True
             self.paras.fct = 0.5
             self.paras.fName = "MEG"
             self.paras.plotfct = 30
@@ -76,7 +76,7 @@ class TVDNDetect:
             self.paras.downRate = 4
             self.paras.decimateRate = None
             self.paras.T = 2
-            self.paras.is_detrend = False
+            self.paras.is_detrend = True
             self.paras.fct = 0.5
             self.paras.fName = "fMRI"
             self.paras.plotfct = 180
@@ -91,7 +91,7 @@ class TVDNDetect:
             self.paras.downRate = 4
             self.paras.decimateRate = None
             self.paras.T = 2
-            self.paras.is_detrend = False
+            self.paras.is_detrend = True
             self.paras.fct = 1
             self.paras.fName = "simu"
             self.paras.plotfct = 1
@@ -129,22 +129,22 @@ class TVDNDetect:
     
     # Data preprocessing, including detrend and decimate
     def _Preprocess(self):
-        # Detrend the data
-        is_detrend = self.paras.is_detrend
-        if is_detrend:
-            nYmat = detrend(self.Ymat)
-        else:
-            nYmat = self.Ymat
-            
-        # Decimate the data
+        nYmat = self.Ymat
+
+        # Decimate the data first
         decimateRate = self.paras.decimateRate
         if decimateRate is not None:
             nYmatList = []
             for i in range(nYmat.shape[0]):
                 nYmatList.append(decimate_R(nYmat[i, :], decimateRate))
-            self.nYmat = np.array(nYmatList)
-        else:
-            self.nYmat = nYmat
+            nYmat = np.array(nYmatList)
+
+        # Then Detrend the data
+        is_detrend = self.paras.is_detrend
+        if is_detrend:
+            nYmat = detrend(nYmat)
+            
+        self.nYmat = nYmat
         _, n = self.nYmat.shape
         self.ptime = np.linspace(0, self.paras.T, n) * self.paras.plotfct
         self.time = np.linspace(0, self.paras.T, n)
