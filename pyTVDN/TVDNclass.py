@@ -400,8 +400,8 @@ class TVDNDetect:
         if self.RecResCur is None:
             self.GetRecResCur()
         RecYmatCur = self.RecResCur.EstXmatReal
-        deltaT = np.diff(self.time)[0]
-        MSE = np.sqrt(np.sum((RecYmatCur-self.nYmat)**2)/np.sum(self.nYmat**2))/deltaT
+        #deltaT = np.diff(self.time)[0]
+        MSE = np.sqrt(np.sum((RecYmatCur-self.nYmat)**2)/np.sum(self.nYmat**2))
         #MSE = np.mean((RecYmatCur-self.nYmat)**2)
         return MSE
 
@@ -508,8 +508,8 @@ class TVDNDetect:
         MSEs = []
         for i in range(MaxM+1):
             RecYmatCur = self.RecYmatAll[i].EstXmatReal
-            deltaT = np.diff(self.time)[0]
-            MSE = np.sqrt(np.sum((RecYmatCur-self.nYmat)**2)/np.sum(self.nYmat**2))/deltaT
+            #deltaT = np.diff(self.time)[0]
+            MSE = np.sqrt(np.sum((RecYmatCur-self.nYmat)**2)/np.sum(self.nYmat**2))
             #MSE = np.mean((RecYmatCur-self.nYmat)**2)
             MSEs.append(MSE)
         self.MSEs = MSEs
