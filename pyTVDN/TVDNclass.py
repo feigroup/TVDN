@@ -368,8 +368,8 @@ class TVDNDetect:
         LamMs = self.RecResCur.LamMs
         _, n = LamMs.shape
         acTime = n / self.paras.freq
-        ReLamMs = LamMs.real*freq/(acTime/self.paras.T)
-        ImLamMs = LamMs.imag*freq /((2*np.pi)*(acTime/self.paras.T))
+        ReLamMs = LamMs.real/(acTime/self.paras.T)
+        ImLamMs = LamMs.imag/((2*np.pi)*(acTime/self.paras.T))
         cols = sns.color_palette("Paired", ReLamMs.shape[0])
         
         plt.figure(figsize=[10, 5])
