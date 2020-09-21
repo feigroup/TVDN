@@ -550,7 +550,7 @@ class TVDNDetect:
             assert self.RecYmatAll is not None, "Run TuningKappa function first!"
             numChg = self.optKappaOptNumChg
         if numChg == 0:
-            self.ecpts = []
+            self.ecpts = np.array([])
         else:
             self.ecpts = self.finalRes.chgMat[numChg-1, :numChg]
         self.GetRecResCur()
