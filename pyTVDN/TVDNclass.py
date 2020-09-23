@@ -269,7 +269,8 @@ class TVDNDetect:
                     self.finalRes = MainResults.finalRes
                     self.ecpts = self.finalRes.mbic_ecpts
                     self.nYmat = MainResults.nYmat
-                    #self.Ymat = MainResults.Ymat
+                    self.Ymat = MainResults.Ymat
+                    self.Xmat = MainResults.Xmat
                     self.midRes = MainResults.midRes
                     self.Amat = MainResults.Amat
                     self.ptime = MainResults.ptime
