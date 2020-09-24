@@ -401,7 +401,8 @@ class TVDNDetect:
             self.GetRecResCur()
         RecYmatCur = self.RecResCur.EstXmatReal
         #deltaT = np.diff(self.time)[0]
-        MSE = np.sqrt(np.sum((RecYmatCur-self.nYmat)**2)/np.sum(self.nYmat**2))
+        MSE = np.sqrt(np.sum((RecYmatCur-self.Xmat)**2)/np.sum(self.Xmat**2))
+        #MSE = np.sqrt(np.sum((RecYmatCur-self.nYmat)**2)/np.sum(self.nYmat**2))
         #MSE = np.mean((RecYmatCur-self.nYmat)**2)
         return MSE
 
@@ -509,7 +510,8 @@ class TVDNDetect:
         for i in range(MaxM+1):
             RecYmatCur = self.RecYmatAll[i].EstXmatReal
             #deltaT = np.diff(self.time)[0]
-            MSE = np.sqrt(np.sum((RecYmatCur-self.nYmat)**2)/np.sum(self.nYmat**2))
+            MSE = np.sqrt(np.sum((RecYmatCur-self.Xmat)**2)/np.sum(self.Xmat**2))
+            #MSE = np.sqrt(np.sum((RecYmatCur-self.nYmat)**2)/np.sum(self.nYmat**2))
             #MSE = np.mean((RecYmatCur-self.nYmat)**2)
             MSEs.append(MSE)
         self.MSEs = MSEs
@@ -528,17 +530,17 @@ class TVDNDetect:
         plt.figure(figsize=[15, 5])
 
         plt.subplot(131)
-        plt.plot(self.kappas, MSEs[numchgs])
+        plt.plot(self.kappas, MSEs[numchgs], ".-")
         plt.ylabel("Error")
         _ = plt.xlabel("Kappa")
 
         plt.subplot(132)
-        plt.plot(self.kappas, numchgs)
+        plt.plot(self.kappas, numchgs, ".-")
         plt.ylabel("Num of Change points")
         _ = plt.xlabel("Kappa")
 
         plt.subplot(133)
-        plt.plot(MSEs)
+        plt.plot(MSEs, ".-")
         plt.xlabel("Num of Change points")
         _ = plt.ylabel("Error")
         plt.show()
