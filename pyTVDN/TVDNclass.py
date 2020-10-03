@@ -60,7 +60,7 @@ class TVDNDetect:
             self.paras.downRate = 20
             self.paras.decimateRate = 10
             self.paras.T = 2
-            self.paras.is_detrend = True
+            self.paras.is_detrend = False
             self.paras.fct = 0.5
             self.paras.fName = "MEG"
             self.paras.freq = 60
@@ -74,7 +74,7 @@ class TVDNDetect:
             self.paras.downRate = 4
             self.paras.decimateRate = None
             self.paras.T = 2
-            self.paras.is_detrend = True
+            self.paras.is_detrend = False
             self.paras.fct = 0.5
             self.paras.fName = "fMRI"
             self.paras.freq = 0.5
@@ -88,7 +88,7 @@ class TVDNDetect:
             self.paras.downRate = 4
             self.paras.decimateRate = None
             self.paras.T = 2
-            self.paras.is_detrend = True
+            self.paras.is_detrend = False
             self.paras.fct = 1
             self.paras.fName = "simu"
             self.paras.freq = 180
