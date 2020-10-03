@@ -3,6 +3,7 @@ __pycache__/*
 .ipynb_checkpoints/*
 demo/.ipynb_checkpoints/*
 realdata/.ipynb_checkpoints/*
+simulations/.ipynb_checkpoints/*
 *.pkl
 Rcode/*
 test.*

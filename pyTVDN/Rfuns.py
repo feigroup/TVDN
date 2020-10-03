@@ -2,6 +2,7 @@
 
 import rpy2.robjects as robj
 import numpy as np
+from pathlib import Path
 
 def bw_nrd0_R(time, fct=1):
     bw_nrd0 = robj.r["bw.nrd0"]
@@ -25,3 +26,13 @@ def decimate_R(seq, q):
     seq_R = robj.FloatVector(seq)
     return np.array(decimate_R_f(seq_R, q))
 
+
+def fourier_reg_R(x, y, nbasis=10):
+    filePath = Path(__file__).parent
+    robj.r.source(str(filePath/"Rfuns.R"))
+    x_r = robj.FloatVector(x)
+    y_r = robj.FloatVector(y)
+    res = robj.r.fourier_reg(x_r, y_r, nbasis)
+    yhat = np.array(res.rx2("yhat"))
+    ydevhat = np.array(res.rx2("dyhat"))
+    return {"yhat":yhat, "ydevhat":ydevhat}

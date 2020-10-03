@@ -6,11 +6,12 @@ The input and output of the functions use R index method (i.e., start from 1 not
 
 # import needed packages
 import numpy as np
+from scipy.signal import detrend
 from numpy.linalg import inv, svd
 from scipy.stats import multivariate_normal as mnorm
 from easydict import EasyDict as edict
 from .utils import in_notebook
-from .Rfuns import bw_nrd0_R, smooth_spline_R
+from .Rfuns import bw_nrd0_R, smooth_spline_R, fourier_reg_R
 if in_notebook():
     from tqdm import tqdm_notebook as tqdm
 else:
@@ -36,6 +37,27 @@ def GetBsplineEst(Ymat, time, lamb=1e-6):
     Xmat = np.array(Xmatlist)
     dXmat = np.array(dXmatlist)
     return dXmat, Xmat
+
+# Function to obtain the fourier basis estimate of Xmat and dXmat, d x n
+def GetFourierEst(Ymat, time, nbasis=10):
+    """
+    Input:
+        Ymat: The observed data matrix, d x n
+        time: A list of time points of length n
+    return:
+        The estimated Xmat and dXmat, both are d x n
+    """
+    d, n = Ymat.shape
+    Xmatlist = []
+    dXmatlist = []
+    for i in range(d):
+        spres = fourier_reg_R(x=time, y=Ymat[i, :], nbasis=nbasis)
+        Xmatlist.append(spres["yhat"])
+        dXmatlist.append(spres["ydevhat"])
+    Xmat = np.array(Xmatlist)
+    dXmat = np.array(dXmatlist)
+    return dXmat, Xmat
+
 
 # Function to obtain the sum of Ai matrix
 def GetAmat(dXmat, Xmat, time, downrate=1, fct=1):
@@ -334,12 +356,13 @@ def ReconXmat(ecpts, ndXmat, nXmat, kpidxs, eigVecs, Ymat, tStep, r, is_full=Fal
         EstXmat[:, i] = eigVecsr.dot(mTerm).dot(rTerm) * tStep + EstXmat[:,i-1]
     if is_full:
         ReDict = edict()
-        ReDict.EstXmatReal = EstXmat.real
+        ReDict.EstXmatReal = detrend(EstXmat.real)
+        ReDict.EstXmatRealOrg = EstXmat.real
         ReDict.EstXmatImag = EstXmat.imag
         ReDict.LamMs = LamMs
         return ReDict
     else:
-        return EstXmat.real
+        return detrend(EstXmat.real)
 
 
 # Reconstruct Xmat from results for CV
@@ -413,9 +436,10 @@ def ReconXmatCV(ecpts, ndXmat, nXmat, kpidxs, eigVecs, Ymat, tStep, r, adjFct, n
         EstXmat[:, i] = eigVecsr.dot(mTerm).dot(rTerm) * tStep + EstXmat[:,i-1]
     if is_full:
         ReDict = edict()
-        ReDict.EstXmatReal = EstXmat.real
+        ReDict.EstXmatReal = detrend(EstXmat.real)
+        ReDict.EstXmatRealOrg = EstXmat.real
         ReDict.EstXmatImag = EstXmat.imag
         ReDict.LamMs = LamMs
         return ReDict
     else:
-        return EstXmat.real
+        return detrend(EstXmat.real)

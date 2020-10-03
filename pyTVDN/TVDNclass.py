@@ -17,7 +17,7 @@ else:
     from tqdm import tqdm
 
 class TVDNDetect:
-    def __init__(self, Ymat, dataType=None, saveDir=None, showProgress=True, **paras):
+    def __init__(self, Ymat, smoothType="Bspline", dataType=None, saveDir=None, showProgress=True, **paras):
         """
         Input:
             Ymat: The data matrix, d x n
@@ -36,7 +36,6 @@ class TVDNDetect:
                     is_detrend: Whether detrend data or not
                     fct: The factor to adjust h when estimating A matrix
                     fName:  The file name when saving the results
-                    plotfct: The factor to adjust the time course when plotting
                     freq: The parameter used drawing the eigen values plots
         """
         self.Ymat = Ymat
@@ -45,6 +44,11 @@ class TVDNDetect:
             self.dataType = dataType.lower()
         else:
             self.dataType = dataType
+
+        if smoothType is not None:
+            self.smoothType = smoothType.lower()
+        else:
+            self.smoothType = smoothType
 
 
         if self.dataType == "meg":
@@ -59,8 +63,8 @@ class TVDNDetect:
             self.paras.is_detrend = False
             self.paras.fct = 0.5
             self.paras.fName = "MEG"
-            self.paras.plotfct = 30
             self.paras.freq = 60
+            self.paras.nbasis = 10
         elif self.dataType == "fmri":
             self.paras.kappa = 2.65
             self.paras.Lmin = 4
@@ -73,8 +77,8 @@ class TVDNDetect:
             self.paras.is_detrend = False
             self.paras.fct = 0.5
             self.paras.fName = "fMRI"
-            self.paras.plotfct = 180
             self.paras.freq = 0.5
+            self.paras.nbasis = 10
         else:
             self.paras.kappa = 2.65
             self.paras.Lmin = 4
@@ -87,8 +91,8 @@ class TVDNDetect:
             self.paras.is_detrend = False
             self.paras.fct = 1
             self.paras.fName = "simu"
-            self.paras.plotfct = 1
             self.paras.freq = 180
+            self.paras.nbasis = 10
         keys = list(self.paras.keys())
         for key in paras.keys():
             self.paras[key] = paras[key]
@@ -121,37 +125,44 @@ class TVDNDetect:
     
     # Data preprocessing, including detrend and decimate
     def _Preprocess(self):
-        # Detrend the data
-        is_detrend = self.paras.is_detrend
-        if is_detrend:
-            nYmat = detrend(self.Ymat)
-        else:
-            nYmat = self.Ymat
-            
-        # Decimate the data
+        nYmat = self.Ymat
+
+        # Decimate the data first
         decimateRate = self.paras.decimateRate
         if decimateRate is not None:
             nYmatList = []
             for i in range(nYmat.shape[0]):
                 nYmatList.append(decimate_R(nYmat[i, :], decimateRate))
-            self.nYmat = np.array(nYmatList)
-        else:
-            self.nYmat = nYmat
+            nYmat = np.array(nYmatList)
+
+        # Then Detrend the data
+        is_detrend = self.paras.is_detrend
+        if is_detrend:
+            nYmat = detrend(nYmat)
+            
+        self.nYmat = nYmat
         _, n = self.nYmat.shape
-        self.ptime = np.linspace(0, self.paras.T, n) * self.paras.plotfct
+        acTime = n / self.paras.freq
+        self.ptime = np.linspace(0, acTime, n) 
         self.time = np.linspace(0, self.paras.T, n)
     
-    def GetBsplineEst(self):
+    def SmoothEst(self):
         if self.nYmat is None:
             self._Preprocess()
-        lamb = self.paras.lamb
-        self.dXmat, self.Xmat = GetBsplineEst(self.nYmat, self.time, lamb=lamb)
+        _, n = self.nYmat.shape
+        acTime = n / self.paras.freq
+        self.ptime = np.linspace(0, acTime, n) 
+        self.time = np.linspace(0, self.paras.T, n)
+        if self.smoothType == "bspline":
+            self.dXmat, self.Xmat = GetBsplineEst(self.nYmat, self.time, lamb=self.paras.lamb)
+        elif self.smoothType == "fourier":
+            self.dXmat, self.Xmat = GetFourierEst(self.nYmat, self.time, nbasis=self.paras.nbasis)
     
     def GetAmat(self):
         downRate = self.paras.downRate
         fct = self.paras.fct
         if self.dXmat is None:
-            self.GetBsplineEst()
+            self.SmoothEst()
         self.Amat = GetAmat(self.dXmat, self.Xmat, self.time, downRate, fct=fct)
     
     
@@ -241,6 +252,7 @@ class TVDNDetect:
                 print(f"Save Main Results at {saveResPath}.")
                 MainResults = edict()
                 MainResults.nYmat = self.nYmat
+                MainResults.Xmat = self.Xmat
                 MainResults.Ymat = self.Ymat
                 MainResults.midRes = self.midRes
                 MainResults.finalRes = self.finalRes
@@ -257,7 +269,8 @@ class TVDNDetect:
                     self.finalRes = MainResults.finalRes
                     self.ecpts = self.finalRes.mbic_ecpts
                     self.nYmat = MainResults.nYmat
-                    #self.Ymat = MainResults.Ymat
+                    self.Ymat = MainResults.Ymat
+                    self.Xmat = MainResults.Xmat
                     self.midRes = MainResults.midRes
                     self.Amat = MainResults.Amat
                     self.ptime = MainResults.ptime
@@ -267,13 +280,14 @@ class TVDNDetect:
                 self.GetNewData()
             self.finalRes = EGenDy(self.ndXmat, self.nXmat, r=r, canpts=self.canpts, kappa=kappa, Lmin=Lmin, MaxM=MaxM, is_full=True, showProgress=self.showProgress)
             self.ecpts = self.finalRes.mbic_ecpts
-        self.__GetRecResCur()
+        self.GetRecResCur()
             
     # Plot the change point detection results
     def PlotEcpts(self, saveFigPath=None):
         assert self.finalRes is not None, "Run main function first!"
         d, n = self.nYmat.shape
-        ajfct = n/(self.paras.plotfct*self.paras.T)
+        acTime = n / self.paras.freq
+        ajfct = n/acTime
         plt.figure(figsize=[10, 5])
         for i in range(d):
             plt.plot(self.ptime, self.nYmat[i, :], "-")
@@ -286,7 +300,7 @@ class TVDNDetect:
         
     
     # Plot reconstructed Ymat curve 
-    def PlotRecCurve(self, idxs=None, bestK=None, quantiles=None, saveFigPath=None, is_imag=False):
+    def PlotRecCurve(self, idxs=None, bestK=None, quantiles=None, saveFigPath=None, is_imag=False, is_smoothCurve=False):
         """
         idxs: The indices of the sequences to plot 
         bestK: The best K fitted curves to plot according to the errors
@@ -299,7 +313,7 @@ class TVDNDetect:
         if idxs is None and bestK is not None and quantiles is not None:
             warnings.warn("bestK is provided, so quantiles will be ignored", UserWarning)
         if self.RecResCur is None:
-            self.__GetRecResCur()
+            self.GetRecResCur()
         if is_imag:
             RecYmatCur = self.RecResCur.EstXmatImag
         else:
@@ -331,26 +345,32 @@ class TVDNDetect:
         for i, idx, in enumerate(idxs):
             plt.subplot(numRow, 3, i+1)
             if not is_imag:
-                plt.plot(self.ptime, self.nYmat[idx, :], label="Observed")
-            plt.plot(self.ptime, RecYmatCur[idx, :], label="Estimated")
+                plt.plot(self.ptime, self.nYmat[idx, :], "-", label="Observed")
+            plt.plot(self.ptime, RecYmatCur[idx, :], "-.", label="Reconstructed")
+            if is_smoothCurve:
+                if self.Xmat is None:
+                    self.SmoothEst()
+                plt.plot(self.ptime, self.Xmat[idx, :], "r--", label=f"{self.smoothType} Estimator")
             plt.legend()
         if saveFigPath is None:
             plt.show() 
         else:
             plt.savefig(saveFigPath)
+
+        return idxs
     
     # Plot the eigen value curve
     def PlotEigenCurve(self, saveFigPath=None):
         assert self.finalRes is not None, "Run main function first!"
         if self.RecResCur is None:
-            self.__GetRecResCur()
+            self.GetRecResCur()
         freq = self.paras.freq
         numChgCur = len(self.ecpts)
         LamMs = self.RecResCur.LamMs
         _, n = LamMs.shape
         acTime = n / self.paras.freq
-        ReLamMs = LamMs.real*freq/(acTime/self.paras.T)
-        ImLamMs = LamMs.imag*freq /((2*np.pi)*(acTime/self.paras.T))
+        ReLamMs = LamMs.real/(acTime/self.paras.T)
+        ImLamMs = LamMs.imag/((2*np.pi)*(acTime/self.paras.T))
         cols = sns.color_palette("Paired", ReLamMs.shape[0])
         
         plt.figure(figsize=[10, 5])
@@ -359,7 +379,7 @@ class TVDNDetect:
         for i in range(ReLamMs.shape[0]):
             plt.plot(self.ptime, ReLamMs[i, :], label=f"Lam {i+1}", 
                      color=cols[i], linewidth=2)
-        plt.ylabel("change of growth/decay constant")
+        plt.ylabel("Change of growth/decay constant")
         plt.xlabel("time")
         _ = plt.legend()
         
@@ -367,7 +387,7 @@ class TVDNDetect:
         for i in range(ReLamMs.shape[0]):
             plt.plot(self.ptime, ImLamMs[i, :], label=f"Lam {i+1}", 
                      color=cols[i], linewidth=2)
-        plt.ylabel("change of growth/decay constant")
+        plt.ylabel("Change of frequencyy")
         plt.xlabel("time")
         _ = plt.legend()
         if saveFigPath is None:
@@ -378,14 +398,16 @@ class TVDNDetect:
     def GetCurMSE(self):
         assert self.finalRes is not None, "Run main function first!"
         if self.RecResCur is None:
-            self.__GetRecResCur()
+            self.GetRecResCur()
         RecYmatCur = self.RecResCur.EstXmatReal
-        MSE = np.sqrt(np.sum((RecYmatCur-self.nYmat)**2)/np.sum(self.nYmat**2))
+        #deltaT = np.diff(self.time)[0]
+        MSE = np.sqrt(np.sum((RecYmatCur-self.Xmat)**2)/np.sum(self.Xmat**2))
+        #MSE = np.sqrt(np.sum((RecYmatCur-self.nYmat)**2)/np.sum(self.nYmat**2))
         #MSE = np.mean((RecYmatCur-self.nYmat)**2)
         return MSE
 
 
-    def __GetRecResCur(self):
+    def GetRecResCur(self):
         numchg = len(self.ecpts)
         if self.RecYmatAll is not None:
             self.RecResCur = self.RecYmatAll[numchg]
@@ -422,7 +444,7 @@ class TVDNDetect:
             eigVecs = midRes.eigVecs
             self.RecResCur = ReconXmat(finalRes.chgMat[numchg-1, :numchg], ndXmat, nXmat, kpidxs, eigVecs, self.nYmat, tStep, r=r, is_full=True) 
     
-    def __GetRecYmats(self):
+    def GetRecYmats(self):
         if self.RecYmatAll is None:
             RecYmatAll = []
             MaxM = self.paras.MaxM
@@ -475,19 +497,21 @@ class TVDNDetect:
         if self.saveDir is not None:
             RecYmatAllPath = self.saveDir/f"{self.paras.fName}_Rank{self.paras.r}_RecAll.pkl"
             if not RecYmatAllPath.exists():
-                self.__GetRecYmats()
+                self.GetRecYmats()
                 with open(RecYmatAllPath, "wb") as f:
                     pickle.dump(self.RecYmatAll, f)
             else:
                 with open(RecYmatAllPath, "rb") as f:
                     self.RecYmatAll = pickle.load(f)
         else:
-            self.__GetRecYmats()
+            self.GetRecYmats()
             
         MSEs = []
         for i in range(MaxM+1):
             RecYmatCur = self.RecYmatAll[i].EstXmatReal
-            MSE = np.sqrt(np.sum((RecYmatCur-self.nYmat)**2)/np.sum(self.nYmat**2))
+            #deltaT = np.diff(self.time)[0]
+            MSE = np.sqrt(np.sum((RecYmatCur-self.Xmat)**2)/np.sum(self.Xmat**2))
+            #MSE = np.sqrt(np.sum((RecYmatCur-self.nYmat)**2)/np.sum(self.nYmat**2))
             #MSE = np.mean((RecYmatCur-self.nYmat)**2)
             MSEs.append(MSE)
         self.MSEs = MSEs
@@ -506,17 +530,17 @@ class TVDNDetect:
         plt.figure(figsize=[15, 5])
 
         plt.subplot(131)
-        plt.plot(self.kappas, MSEs[numchgs])
+        plt.plot(self.kappas, MSEs[numchgs], ".-")
         plt.ylabel("Error")
         _ = plt.xlabel("Kappa")
 
         plt.subplot(132)
-        plt.plot(self.kappas, numchgs)
+        plt.plot(self.kappas, numchgs, ".-")
         plt.ylabel("Num of Change points")
         _ = plt.xlabel("Kappa")
 
         plt.subplot(133)
-        plt.plot(MSEs)
+        plt.plot(MSEs, ".-")
         plt.xlabel("Num of Change points")
         _ = plt.ylabel("Error")
         plt.show()
@@ -529,10 +553,10 @@ class TVDNDetect:
             assert self.RecYmatAll is not None, "Run TuningKappa function first!"
             numChg = self.optKappaOptNumChg
         if numChg == 0:
-            self.ecpts = []
+            self.ecpts = np.array([])
         else:
             self.ecpts = self.finalRes.chgMat[numChg-1, :numChg]
-        self.__GetRecResCur()
+        self.GetRecResCur()
     
 
     def __str__(self):
