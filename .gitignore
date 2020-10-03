@@ -5,7 +5,6 @@ demo/.ipynb_checkpoints/*
 realdata/.ipynb_checkpoints/*
 simulations/.ipynb_checkpoints/*
 *.pkl
-Rcode/*
 test.*
 simulation100.ipynb
 tmp/*
