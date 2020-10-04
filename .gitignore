@@ -10,7 +10,6 @@ simulation100.ipynb
 tmp/*
 data/*
 data/brain_plot/*
-!data/*.pkl
 !pyTVDN/data/*
 demo/*.jpg
 others/*.zip

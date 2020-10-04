@@ -243,6 +243,7 @@ for(i in 1:ncol(segU)){
 segcorrDMD = do.call(rbind, ncorr)
 # What is the shape of segcorr, it should be not the same with segcorrDMD ?? 
 # The correlation of TVDN is computed on the U or weighted U, it seems it should be of shape num of seg x 7 
+# On U 
 res = data.frame(Correlations = c(apply(segcorr, 1, max), apply(segcorrDMD, 1, max), apply(segcorrPCA, 1, max)), 
                  Names = c(rep('TVDN', nrow(segcorr)), rep('DMD', nrow(segcorrDMD)), rep('PCA', nrow(segcorrPCA))), 
                  Methods = c(rep(1, nrow(segcorr)), rep(2, nrow(segcorrDMD)), rep(3, nrow(segcorrPCA))))
@@ -287,8 +288,7 @@ for(k in 1){
 #                           rep('PCA', nrow(segcorrPCA))), 
 #                           Methods = c(rep(1, nrow(segcorr)), rep(2, nrow(segcorrDMD)), rep(3, nrow(segcorrPCA))))
 res = data.frame(Correlations = c(apply(segcorrDMD, 1, max), apply(segcorrPCA, 1, max)), 
-                 Names = c(
-                           rep('DMD', nrow(segcorrDMD)),
+                 Names = c(rep('DMD', nrow(segcorrDMD)),
                            rep('PCA', nrow(segcorrPCA))), 
                 Methods = c(rep(2, nrow(segcorrDMD)), rep(3, nrow(segcorrPCA))))
 library(ggplot2)
