@@ -1,9 +1,8 @@
 # First three to do cluster and obtain change points
 segCorr <- function(downseq, wsize, seqw){
-    tix = 1:length(time)
     
     PCAU = NULL
-    for(itr in 1:length(seqw)){
+    for(itr in seqw){
         ix = itr : (itr + wsize -1)
         temp = as.vector((cor(t( downseq[, ix]))))
         #rank = sum(cumsum(temp$d)/sum(temp$d)<= perrank) + 1
@@ -13,10 +12,9 @@ segCorr <- function(downseq, wsize, seqw){
     return(PCAU)
 }
 segPCA <- function(downseq, wsize, seqw, rank=6){
-    tix = 1:length(time)
     
     PCAU = NULL
-    for(itr in 1:length(seqw)){
+    for(itr in seqw){
         ix = itr : (itr + wsize -1)
         temp = svd(cov(t( downseq[, ix])))
         #  rank = wsize-1#sum(cumsum(temp$d)/sum(temp$d)<= perrank) + 1
@@ -28,12 +26,11 @@ segPCA <- function(downseq, wsize, seqw, rank=6){
 }
 
 DMD <- function(downseq, wsize, seqw, rank=6){
-    tix = 1:length(time)
     PCAU = NULL
     lambda = vector('list')
-    for(itr in 1:length(seqw)){
+    for(itr in seqw){ # it seems it is not correct
         ix = itr : (itr + wsize -1)
-        Xprim = downseq[, ix][, -1]
+        Xprim = as.matrix(downseq[, ix][, -1])
         X = downseq[, ix][, -length(ix)]
         svdX = svd(X)
         # rank = wsize-1#sum(cumsum(svdX$d)/sum(svdX$d)<= perrank) + 1
@@ -53,10 +50,9 @@ DMD <- function(downseq, wsize, seqw, rank=6){
 
 # These two for obtaining the correlation with default mode
 segPCAOrg <- function(downseq, wsize, seqw, rank=6){
-    tix = 1:length(time)
     
     PCAU = NULL
-    for(itr in 1:length(seqw)){
+    for(itr in seqw){
         ix = itr : (itr + wsize -1)
         temp = svd(cov(t( downseq[, ix])))
         #  rank = wsize-1#sum(cumsum(temp$d)/sum(temp$d)<= perrank) + 1
@@ -68,12 +64,11 @@ segPCAOrg <- function(downseq, wsize, seqw, rank=6){
 
 
 DMDOrg <- function(downseq, wsize, seqw, rank=6){
-    tix = 1:length(time)
     PCAU = NULL
     lambda = vector('list')
-    for(itr in 1:length(seqw)){
+    for(itr in seqw){
         ix = itr : (itr + wsize -1)
-        Xprim = downseq[, ix][, -1]
+        Xprim = as.matrix(downseq[, ix][, -1])
         X = downseq[, ix][, -length(ix)]
         svdX = svd(X)
         # rank = wsize-1#sum(cumsum(svdX$d)/sum(svdX$d)<= perrank) + 1
