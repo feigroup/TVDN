@@ -13,14 +13,17 @@ wsize  = 10
 chgcor = chgPCA = chgDMD = vector('list')
 fMRIs = readMat('../data/fMRI_samples.mat')
 datamatrix = vector('list')
-nsim <- 2
+nsim <- 243
 for(k in 1:243){
-     datamatrix[[k]] =  fMRIs$clean.subjects[[k * 4]][1:90, ]
+     fname <- paste0("../Rcode/to_R/fMRI_", k-1, ".txt")
+     datamatrix[[k]] <- read.table(fname)
+     #datamatrix[[k]] =  fMRIs$clean.subjects[[k * 4]][1:90, ]
 }
 
 
 for(k in 1:nsim){
    
+    print(k)
  
     rank <- 6
     downseq =datamatrix[[k]]
@@ -41,7 +44,7 @@ for(k in 1:nsim){
 PCAress = DMDress = vector('list')
 for(k in 1:nsim){
    
- 
+    print(k)
     rank <- 8 
     downseq =datamatrix[[k]]
     #time =  seq(0, 2, length.out = ncol(downseq))
@@ -59,24 +62,27 @@ fcR = read.csv('../necessary files/AALICA.csv')
 fcR = fcR[1:90, ] # 90 x 7
 segcorrDMDs <- NULL
 segcorrPCAs <- NULL
+# No minmax for feature??
 for(k in 1:nsim){
     segcorrDMD <- corF.fMRI(Mod(DMDress[[k]]), fcR)
     segcorrDMDs <- rbind(segcorrDMDs, segcorrDMD)
     segcorrPCA <- corF.fMRI(Mod(PCAress[[k]]), fcR)
     segcorrPCAs <- rbind(segcorrPCAs, segcorrPCA)
 }
+
+segcorrTVDNs <- abs(read.table("../Rcode/allCorrwU.txt"))
                                                                                                    
 #res = data.frame(Correlations = c(apply(segcorr, 1, max), apply(segcorrDMD, 1, max), apply(segcorrPCA, 1, max)), 
 #                 Names = c(rep('TVDN', nrow(segcorr)),
 #                           rep('DMD', nrow(segcorrDMD)),
 #                           rep('PCA', nrow(segcorrPCA))), 
 #                           Methods = c(rep(1, nrow(segcorr)), rep(2, nrow(segcorrDMD)), rep(3, nrow(segcorrPCA))))
-plotRes <- data.frame(Correlations = c(apply(segcorrDMDs, 1, max), apply(segcorrPCAs, 1, max)), 
-                 Names = c(rep('DMD', nrow(segcorrDMDs)),
-                           rep('PCA', nrow(segcorrPCAs))), 
-                 Methods = c(rep(2, nrow(segcorrDMDs)), rep(3, nrow(segcorrPCAs))))
+plotRes <- data.frame(Correlations = c(apply(segcorrTVDNs, 1, max), apply(segcorrDMDs, 1, max), apply(segcorrPCAs, 1, max)), 
+                 Names = c(rep('TVDN', nrow(segcorrTVDNs)), rep('DMD', nrow(segcorrDMDs)), rep('PCA', nrow(segcorrPCAs))), 
+                 Methods = c(rep(1, nrow(segcorrTVDNs)), rep(2, nrow(segcorrDMDs)), rep(3, nrow(segcorrPCAs))))
 p <- ggplot(plotRes, aes(x=Names, y=Correlations, color=Methods)) + 
-    geom_violin(trim=T)
+    geom_violin(trim=T) +  theme(legend.position="none")
+
 p
 #ggsave(paste('figures/corr_fMRI_15', '.pdf', sep = '' ))
 

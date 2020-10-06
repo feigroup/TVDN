@@ -14,3 +14,5 @@ data/brain_plot/*
 demo/*.jpg
 others/*.zip
 necessary files/*
+Rcode/*.txt
+Rcode/to_R/*
