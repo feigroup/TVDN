@@ -14,3 +14,4 @@ data/brain_plot/*
 demo/*.jpg
 others/*.zip
 necessary files/*
+realdata/fMRIHPFs/*

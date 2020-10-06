@@ -3,7 +3,7 @@ from easydict import EasyDict as edict
 import numpy as np
 
 
-def TVDNRankTuning(ranks, kappas, Ymat, dataType=None, saveDir=None, **paras):
+def TVDNRankTuning(ranks, kappas, Ymat, dataType=None, saveDir=None, showProgress=False, **paras):
     """
     Input:
         ranks: The range of ranks to tune
@@ -45,10 +45,11 @@ def TVDNRankTuning(ranks, kappas, Ymat, dataType=None, saveDir=None, **paras):
     optKappasCur = []
     detections = []
     for rank in ranks:
-        print("="*50)
-        print(f"The current rank is {rank}.")
+        if showProgress:
+            print("="*50)
+            print(f"The current rank is {rank}.")
         paras["r"] = rank
-        detection = TVDNDetect(Ymat=Ymat, dataType=dataType, saveDir=saveDir, showProgress=True, **paras)
+        detection = TVDNDetect(Ymat=Ymat, dataType=dataType, saveDir=saveDir, showProgress=showProgress, **paras)
         detection()
         if len(kappas) == 1:
             MSE = detection.GetCurMSE()
@@ -68,7 +69,8 @@ def TVDNRankTuning(ranks, kappas, Ymat, dataType=None, saveDir=None, **paras):
         optKappasCur.append(optKappaCur)
         detections.append(detection)
 
-        print("="*50)
+        if showProgress:
+            print("="*50)
 
     optRank = ranks[np.argmin(MSEs)]
     optKappa = optKappasCur[np.argmin(MSEs)]
