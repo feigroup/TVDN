@@ -1,19 +1,15 @@
-pyTVDN/__pycache__/*
-__pycache__/*
-.ipynb_checkpoints/*
-demo/.ipynb_checkpoints/*
-realdata/.ipynb_checkpoints/*
-simulations/.ipynb_checkpoints/*
-*.pkl
+__pycache__/
+.ipynb_checkpoints/
+data
+tmp
+results
+necessary files
+realdata/fMRIHPFs/
+Rcode/to_R/
+
 test.*
-simulation100.ipynb
-tmp/*
-data/*
-data/brain_plot/*
-!pyTVDN/data/*
 demo/*.jpg
 others/*.zip
-necessary files/*
-realdata/fMRIHPFs/*
 Rcode/*.txt
-Rcode/to_R/*
+
+!pyTVDN/data/
