@@ -109,6 +109,7 @@ chgF <- function(res, seqslide, ncen=4){
 
 corF.fMRI <- function(res, fcR){
     fcR <- apply(fcR, 2, minmax)
+    res <- apply(res, 2, minmax)
     ncorr <- list()
     for (i in 1:ncol(res)){
         ncorr[[i]] <- abs(cor(res[, i], fcR))

@@ -3,7 +3,8 @@
 # 3. HPF
 
 rm(list=ls())
-source("../Rcode/utils.R")
+setwd("C:/Users/Dell/Documents/ProjectCode/TVDN/Rcode")
+source("utils.R")
 library(R.matlab)
 library(magrittr)
 library(ggplot2)
@@ -62,7 +63,6 @@ fcR = read.csv('../necessary files/AALICA.csv')
 fcR = fcR[1:90, ] # 90 x 7
 segcorrDMDs <- NULL
 segcorrPCAs <- NULL
-# No minmax for feature??
 for(k in 1:nsim){
     segcorrDMD <- corF.fMRI(Mod(DMDress[[k]]), fcR)
     segcorrDMDs <- rbind(segcorrDMDs, segcorrDMD)
@@ -72,11 +72,6 @@ for(k in 1:nsim){
 
 segcorrTVDNs <- abs(read.table("../Rcode/allCorrwU.txt"))
                                                                                                    
-#res = data.frame(Correlations = c(apply(segcorr, 1, max), apply(segcorrDMD, 1, max), apply(segcorrPCA, 1, max)), 
-#                 Names = c(rep('TVDN', nrow(segcorr)),
-#                           rep('DMD', nrow(segcorrDMD)),
-#                           rep('PCA', nrow(segcorrPCA))), 
-#                           Methods = c(rep(1, nrow(segcorr)), rep(2, nrow(segcorrDMD)), rep(3, nrow(segcorrPCA))))
 plotRes <- data.frame(Correlations = c(apply(segcorrTVDNs, 1, max), apply(segcorrDMDs, 1, max), apply(segcorrPCAs, 1, max)), 
                  Names = c(rep('TVDN', nrow(segcorrTVDNs)), rep('DMD', nrow(segcorrDMDs)), rep('PCA', nrow(segcorrPCAs))), 
                  Methods = c(rep(1, nrow(segcorrTVDNs)), rep(2, nrow(segcorrDMDs)), rep(3, nrow(segcorrPCAs))))
@@ -103,7 +98,7 @@ weightedU <- read.table("../Rcode/weightedUM.txt")
 
 for (em in 1:ncol(weightedU)){
     outPut <- innOut(weightedU[, em],region_list, AAL)
-    writeNifti(temp, file = paste('sp_2_mode_', em, '.nii', sep = ''))
+    writeNifti(outPut, file = paste('sp_2_mode_', em, '.nii', sep = ''))
 }
 
 
