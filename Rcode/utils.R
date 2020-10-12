@@ -90,7 +90,8 @@ minmax <- function(x){
 }
 
 innOut <- function(absWeightedU, region_list, AAL){
-    outPut <- array(dim=c(91, 109, 91))
+    outPut <- AAL
+    outPut[] <- NA
     wUmode <- minmax(absWeightedU) # weightedU[, em] is the mode of the weighted U at em segment. 
     for(i in 1:length(wUmode)){
         ix  = which(AAL== region_list[i, 2]) # Give the name for each region
