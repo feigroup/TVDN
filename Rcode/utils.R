@@ -40,7 +40,6 @@ DMD <- function(downseq, wsize, seqw, rank=6){
         eigmode = Xprim %*% svdX$v %*% diag(svdX$d^(-1/2)) %*% eigres$vector
         temp1 = eigmode[, 1:rank, drop = F] %*%   diag((sign(Re(eigmode)[1, 1:rank])), rank, rank)
         temp1 = as.vector(Mod(temp1))
-        # same problem ??
         PCAU = cbind(PCAU,  temp1)
         
         
@@ -78,7 +77,7 @@ DMDOrg <- function(downseq, wsize, seqw, rank=6){
         eigmode = Xprim %*% svdX$v %*% diag(svdX$d^(-1/2)) %*% eigres$vector
         temp1 = eigmode[, 1:rank, drop = F] %*%   diag((sign(Re(eigmode)[1, 1:rank])), rank, rank)
         # no as.vector	
-        PCAU = cbind(PCAU,  temp1)
+        PCAU = cbind(PCAU,  Mod(temp1))
         
         
     }

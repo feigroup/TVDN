@@ -29,13 +29,13 @@ for(k in 1:nsim){
  
     rank <- 6
     downseq =datamatrix[[k]]
-    seqslide = seq(2, ncol(downseq) - wsize, 4) # wsize window size
+    seqslide = seq(2, ncol(downseq) - wsize, 4) 
     # Get the vectorized results
     corres  = segCorr(downseq, wsize, seqslide)
     PCAres  = segPCA(downseq, wsize, seqslide, rank=rank)
     DMDres = DMD(downseq, wsize, seqslide, rank=rank)
     # Obtain the change points by k-means
-    chgcor[[k]] <- chgF(corres, seqslide)
+    chgcor[[k]] <- chgF(corres, seqslide);chgcor[[k]]
     chgPCA[[k]] <- chgF(PCAres, seqslide)
     chgDMD[[k]] <- chgF(DMDres, seqslide)
     
@@ -47,10 +47,10 @@ PCAress = DMDress = vector('list')
 for(k in 1:nsim){
    
     print(k)
-    rank <- 8 
+    rank <- 6 
     downseq =datamatrix[[k]]
     #time =  seq(0, 2, length.out = ncol(downseq))
-    seqslide = seq(1, ncol(downseq) - wsize, 4)
+    seqslide = seq(2, ncol(downseq) - wsize, 4)
 
     PCAress[[k]]  = segPCAOrg(downseq, wsize, seqslide, rank=rank)
     DMDress[[k]] = DMDOrg(downseq, wsize, seqslide, rank=rank)
@@ -64,15 +64,19 @@ fcR = read.csv('../necessary files/AALICA.csv')
 fcR = fcR[1:90, ] # 90 x 7
 segcorrDMDs <- NULL
 segcorrPCAs <- NULL
+
 for(k in 1:nsim){
-    segcorrDMD <- corF.fMRI(Mod(DMDress[[k]]), fcR)
+    segcorrDMD <- corF.fMRI(Mod(DMDress[[k]]), fcR) 
     segcorrDMDs <- rbind(segcorrDMDs, segcorrDMD)
-    segcorrPCA <- corF.fMRI(Mod(PCAress[[k]]), fcR)
+    segcorrPCA <- corF.fMRI(PCAress[[k]], fcR)# no Mod?
     segcorrPCAs <- rbind(segcorrPCAs, segcorrPCA)
 }
 
 segcorrTVDNs <- abs(read.table("../Rcode/allCorrwU.txt"))
                                                                                                    
+apply(segcorrTVDNs, 1, max)[1:10]
+apply(segcorrDMDs, 1, max)[1:10]
+apply(segcorrPCAs, 1, max)[1:10]
 plotRes <- data.frame(Correlations = c(apply(segcorrTVDNs, 1, max), apply(segcorrDMDs, 1, max), apply(segcorrPCAs, 1, max)), 
                  Names = c(rep('TVDN', nrow(segcorrTVDNs)), rep('DMD', nrow(segcorrDMDs)), rep('PCA', nrow(segcorrPCAs))), 
                  Methods = c(rep(1, nrow(segcorrTVDNs)), rep(2, nrow(segcorrDMDs)), rep(3, nrow(segcorrPCAs))))
