@@ -73,6 +73,8 @@ for(k in 1:nsim){
 }
 
 segcorrTVDNs <- abs(read.table("../Rcode/allCorrwU.txt"))
+segcorrPCAs <- abs(segcorrPCAs)
+segcorrDMDs <- abs(segcorrDMDs)
                                                                                                    
 apply(segcorrTVDNs, 1, max)[1:10]
 apply(segcorrDMDs, 1, max)[1:10]
