@@ -112,7 +112,7 @@ corF.fMRI <- function(res, fcR){
     res <- apply(res, 2, minmax)
     ncorr <- list()
     for (i in 1:ncol(res)){
-        ncorr[[i]] <- abs(cor(res[, i], fcR))
+        ncorr[[i]] <- cor(res[, i], fcR)
     }
     do.call(rbind, ncorr)
 }
