@@ -6,7 +6,7 @@ results
 necessary files
 realdata/fMRIHPFs/
 Rcode/to_R/
-Rcode/*.nii
+*.nii
 
 test.*
 demo/*.jpg
