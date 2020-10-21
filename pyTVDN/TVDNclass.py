@@ -283,7 +283,7 @@ class TVDNDetect:
         self.GetRecResCur()
             
     # Plot the change point detection results
-    def PlotEcpts(self, saveFigPath=None):
+    def PlotEcpts(self, saveFigPath=None, GT=None):
         assert self.finalRes is not None, "Run main function first!"
         d, n = self.nYmat.shape
         acTime = n / self.paras.freq
@@ -291,8 +291,19 @@ class TVDNDetect:
         plt.figure(figsize=[10, 5])
         for i in range(d):
             plt.plot(self.ptime, self.nYmat[i, :], "-")
-        for ecpt in self.ecpts:
-            plt.axvline(ecpt/ajfct, color="black", linestyle="-.")
+        for j, ecpt in enumerate(self.ecpts):
+            if j == 0:
+                plt.axvline(ecpt/ajfct, color="black", linestyle="-", label="Estimate")
+            else:
+                plt.axvline(ecpt/ajfct, color="black", linestyle="-")
+        if GT is not None:
+            for j, cpt in enumerate(GT):
+                if j == 0:
+                    plt.axvline(cpt/ajfct, color="blue", linestyle="--", label="Grandtruth")
+                else:
+                    plt.axvline(cpt/ajfct, color="blue", linestyle="--")
+
+            plt.legend(loc="upper left")
         if saveFigPath is None:
             plt.show() 
         else:
@@ -351,7 +362,8 @@ class TVDNDetect:
                 if self.Xmat is None:
                     self.SmoothEst()
                 plt.plot(self.ptime, self.Xmat[idx, :], "r--", label=f"{self.smoothType} Estimator")
-            plt.legend()
+            #plt.legend()
+            plt.legend(loc="upper left")
         if saveFigPath is None:
             plt.show() 
         else:
@@ -367,29 +379,35 @@ class TVDNDetect:
         freq = self.paras.freq
         numChgCur = len(self.ecpts)
         LamMs = self.RecResCur.LamMs
-        _, n = LamMs.shape
+        rAct, n = LamMs.shape
+        pltIdxs = np.arange(1, rAct)[np.diff(np.abs(LamMs), axis=0).astype(np.bool).all(axis=1)] 
+        pltIdxs = np.concatenate([[0], pltIdxs])
         acTime = n / self.paras.freq
         ReLamMs = LamMs.real/(acTime/self.paras.T)
         ImLamMs = LamMs.imag/((2*np.pi)*(acTime/self.paras.T))
-        cols = sns.color_palette("Paired", ReLamMs.shape[0])
+        cols = sns.color_palette("Paired", len(pltIdxs))
         
         plt.figure(figsize=[10, 5])
         plt.subplots_adjust(wspace=0.5, hspace=0.5)
         plt.subplot(121)
-        for i in range(ReLamMs.shape[0]):
-            plt.plot(self.ptime, ReLamMs[i, :], label=f"Lam {i+1}", 
-                     color=cols[i], linewidth=2)
+        for i0, i in enumerate(pltIdxs):
+            labs = f"$\\lambda_{i0+1}$"
+            plt.plot(self.ptime, ReLamMs[i, :], label=labs, 
+                     color=cols[i0], linewidth=2)
         plt.ylabel("Change of growth/decay constant")
-        plt.xlabel("time")
-        _ = plt.legend()
+        plt.xlabel("Time")
+        #_ = plt.legend()
+        _ = plt.legend(loc="upper left")
         
         plt.subplot(122)
-        for i in range(ReLamMs.shape[0]):
-            plt.plot(self.ptime, ImLamMs[i, :], label=f"Lam {i+1}", 
-                     color=cols[i], linewidth=2)
+        for i0, i in enumerate(pltIdxs):
+            labs = f"$\\lambda_{i0+1}$"
+            plt.plot(self.ptime, ImLamMs[i, :], label=labs, 
+                     color=cols[i0], linewidth=2)
         plt.ylabel("Change of frequencyy")
-        plt.xlabel("time")
-        _ = plt.legend()
+        plt.xlabel("Time")
+        # _ = plt.legend()
+        _ = plt.legend(loc="upper left")
         if saveFigPath is None:
             plt.show() 
         else:
