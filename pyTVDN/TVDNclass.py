@@ -293,15 +293,15 @@ class TVDNDetect:
             plt.plot(self.ptime, self.nYmat[i, :], "-")
         for j, ecpt in enumerate(self.ecpts):
             if j == 0:
-                plt.axvline(ecpt/ajfct, color="black", linestyle="-", label="Estimate")
+                plt.axvline(ecpt/ajfct, color="black", linestyle="--", label="Estimate")
             else:
-                plt.axvline(ecpt/ajfct, color="black", linestyle="-")
+                plt.axvline(ecpt/ajfct, color="black", linestyle="--")
         if GT is not None:
             for j, cpt in enumerate(GT):
                 if j == 0:
-                    plt.axvline(cpt/ajfct, color="blue", linestyle="--", label="Grandtruth")
+                    plt.axvline(cpt/ajfct, color="blue", linestyle="-", label="Grandtruth")
                 else:
-                    plt.axvline(cpt/ajfct, color="blue", linestyle="--")
+                    plt.axvline(cpt/ajfct, color="blue", linestyle="-")
 
             plt.legend(loc="upper left")
         if saveFigPath is None:
