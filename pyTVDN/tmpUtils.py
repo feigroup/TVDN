@@ -1,4 +1,5 @@
 import numpy as np
+import rpy2.robjects as robj
 from easydict import EasyDict as edict
 
 timeLims = edict()
@@ -28,3 +29,16 @@ def time2pts(ts, lims, Up=7200):
     res.ts = ts
     res.cpts = cpts
     return res
+
+
+def py2Rmat(Mat):
+    Mat = np.array(Mat)
+    nrow, _ = Mat.shape
+    rVec = robj.FloatVector(Mat.ravel())
+    rMat = robj.r.matrix(rVec, nrow=nrow, byrow=True)
+    return rMat
+
+def py2Rvec(vec):
+    vec = np.array(vec)
+    vec = vec.astype(np.float)
+    return robj.FloatVector(vec)
