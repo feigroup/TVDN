@@ -394,7 +394,7 @@ class TVDNDetect:
         plt.subplot(121)
         for i0, i in enumerate(pltIdxs):
             labs = f"$\\lambda_{i0+1}$"
-            plt.plot(self.ptime, ReLamMs[i, :], label=labs, 
+            plt.plot(self.ptime, np.abs(ReLamMs[i, :]), label=labs, 
                      color=cols[i0], linewidth=2)
         plt.ylabel("Change of growth/decay constant")
         plt.xlabel("Time")
@@ -404,7 +404,7 @@ class TVDNDetect:
         plt.subplot(122)
         for i0, i in enumerate(pltIdxs):
             labs = f"$\\lambda_{i0+1}$"
-            plt.plot(self.ptime, ImLamMs[i, :], label=labs, 
+            plt.plot(self.ptime, np.abs(ImLamMs[i, :]), label=labs, 
                      color=cols[i0], linewidth=2)
         plt.ylabel("Change of frequencyy")
         plt.xlabel("Time")
