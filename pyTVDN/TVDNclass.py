@@ -385,8 +385,8 @@ class TVDNDetect:
         pltIdxs = np.arange(1, rAct)[np.diff(np.abs(LamMs), axis=0).astype(np.bool).all(axis=1)] 
         pltIdxs = np.concatenate([[0], pltIdxs])
         acTime = n / self.paras.freq
-        ReLamMs = LamMs.real/(acTime/self.paras.T)
-        ImLamMs = LamMs.imag/((2*np.pi)*(acTime/self.paras.T))
+        ReLamMs = freq*LamMs.real/(acTime/self.paras.T)
+        ImLamMs = freq*LamMs.imag/((2*np.pi)*(acTime/self.paras.T))
         cols = sns.color_palette("Paired", len(pltIdxs))
         
         plt.figure(figsize=[10, 5])
