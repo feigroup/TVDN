@@ -385,8 +385,8 @@ class TVDNDetect:
         pltIdxs = np.arange(1, rAct)[np.diff(np.abs(LamMs), axis=0).astype(np.bool).all(axis=1)] 
         pltIdxs = np.concatenate([[0], pltIdxs])
         acTime = n / self.paras.freq
-        ReLamMs = LamMs.real/(acTime/self.paras.T)
-        ImLamMs = LamMs.imag/((2*np.pi)*(acTime/self.paras.T))
+        ReLamMs = freq*LamMs.real/(acTime/self.paras.T)
+        ImLamMs = freq*LamMs.imag/((2*np.pi)*(acTime/self.paras.T))
         cols = sns.color_palette("Paired", len(pltIdxs))
         
         plt.figure(figsize=[10, 5])
@@ -394,7 +394,7 @@ class TVDNDetect:
         plt.subplot(121)
         for i0, i in enumerate(pltIdxs):
             labs = f"$\\lambda_{i0+1}$"
-            plt.plot(self.ptime, ReLamMs[i, :], label=labs, 
+            plt.plot(self.ptime, np.abs(ReLamMs[i, :]), label=labs, 
                      color=cols[i0], linewidth=2)
         plt.ylabel("Change of growth/decay constant")
         plt.xlabel("Time")
@@ -404,7 +404,7 @@ class TVDNDetect:
         plt.subplot(122)
         for i0, i in enumerate(pltIdxs):
             labs = f"$\\lambda_{i0+1}$"
-            plt.plot(self.ptime, ImLamMs[i, :], label=labs, 
+            plt.plot(self.ptime, np.abs(ImLamMs[i, :]), label=labs, 
                      color=cols[i0], linewidth=2)
         plt.ylabel("Change of frequencyy")
         plt.xlabel("Time")
