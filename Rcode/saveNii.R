@@ -12,7 +12,7 @@ AALmask = readnii(fname=file.path(Rlibpath,"AAL_MNI_2mm.nii"))
 region_list = read.table(file=file.path(Rlibpath,"RegionList.txt")) 
 AAL <- readNifti(file.path(Rlibpath, 'AAL.nii'))
 idxs <- c(5, 15, 58, 70, 149, 230)
-idx <- idxs[2];idx
+idx <- idxs[6];idx
 filName <- paste0("../realdata/midRess/fMRI", idx, "wU.txt")
 weightedU <- read.table(filName)
 dim(weightedU)
