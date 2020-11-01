@@ -1,6 +1,6 @@
 __pycache__/
 .ipynb_checkpoints/
-data
+data/*
 tmp
 results
 necessary files
@@ -8,7 +8,6 @@ realdata/fMRIHPFs/
 Rcode/to_R/
 *.nii
 *.pkl
-spectrome/*
 
 test.*
 demo/*.jpg
@@ -16,3 +15,4 @@ others/*.zip
 Rcode/*.txt
 
 !pyTVDN/data/
+!data/brain_plot_meg
