@@ -42,3 +42,12 @@ def py2Rvec(vec):
     vec = np.array(vec)
     vec = vec.astype(np.float)
     return robj.FloatVector(vec)
+
+
+# Obtain the weighted U from the detection obj
+def obtainAbswU(DetObj):
+    eigVecs = DetObj.midRes.eigVecs[:, :DetObj.paras.r]
+    kpidxs = np.concatenate([[0], DetObj.ecpts]).astype(np.int)
+    eigVals = DetObj.RecResCur.LamMs[:, kpidxs]
+    wU = eigVecs.dot(eigVals)
+    return np.abs(wU)
