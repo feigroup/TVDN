@@ -51,3 +51,9 @@ def obtainAbswU(DetObj):
     eigVals = DetObj.RecResCur.LamMs[:, kpidxs]
     wU = eigVecs.dot(eigVals)
     return np.abs(wU)
+
+
+def minmax(x):
+    num = x - np.min(x)
+    den = np.max(x) - np.min(x)
+    return num/den
