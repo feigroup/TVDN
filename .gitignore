@@ -8,6 +8,7 @@ realdata/fMRIHPFs/
 Rcode/to_R/
 *.nii
 *.pkl
+*.swp
 
 test.*
 demo/*.jpg
