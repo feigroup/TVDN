@@ -1,3 +1,0 @@
-"V1" "V2" "V3" "V4" "V5" "V6" "V7" "V8" "V9" "V10" "V11"
-"midxs" "5" "5" "3" "7" "5" "5" "5" "5" "5" "3" "5"
-"mnames" "Limbic" "Limbic" "Dorsal_Attention" "Default" "Limbic" "Limbic" "Limbic" "Limbic" "Limbic" "Dorsal_Attention" "Limbic"
