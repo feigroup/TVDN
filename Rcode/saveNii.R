@@ -11,15 +11,15 @@ MNI2mm_brain_1 = readnii(file.path(Rlibpath,"MNI152_T1_in_mask_2mm.nii.gz"))
 AALmask = readnii(fname=file.path(Rlibpath,"AAL_MNI_2mm.nii"))
 region_list = read.table(file=file.path(Rlibpath,"RegionList.txt")) 
 AAL <- readNifti(file.path(Rlibpath, 'AAL.nii'))
-idxs <- c(5, 15, 58, 70, 149, 230)
-idx <- idxs[6];idx
-filName <- paste0("../realdata/midRess/fMRI", idx, "wU.txt")
+idx <- 122
+filName <- paste0("../results/fMRIHPFs_rankAdap/fMRI", idx, "wU.txt")
+#filName <- paste0("./fMRI", idx, "wU.txt")
 weightedU <- read.table(filName)
 dim(weightedU)
 
 for (em in 1:ncol(weightedU)){
     outPut <- innOut(weightedU[, em],region_list, AAL)
-    writeNifti(outPut, file = paste0("./brainsPlot/", 'fMRI', idx, "_", em, '.nii'))
+    writeNifti(outPut, file = paste0("./brainsPlot/", 'fMRIM8_', idx, "_", em, '.nii'))
 }
 
 
