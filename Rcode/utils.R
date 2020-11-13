@@ -17,7 +17,8 @@ segPCA <- function(downseq, wsize, seqw, rank=6){
     for(itr in seqw){
         ix = itr : (itr + wsize -1)
         temp = svd(cov(t( downseq[, ix])))
-        #  rank = wsize-1#sum(cumsum(temp$d)/sum(temp$d)<= perrank) + 1
+        if (rank <= 0)
+          rank = sum(cumsum(temp$d)/sum(temp$d)<= 0.8) + 1
         temp1 = as.vector(temp$u[, 1:rank, drop = F] %*%  diag((sign(temp$u[1, 1:rank])), rank, rank))# as.vector
         #why not use the eigen value ??
         PCAU = cbind(PCAU,  temp1)
@@ -33,7 +34,8 @@ DMD <- function(downseq, wsize, seqw, rank=6){
         Xprim = as.matrix(downseq[, ix][, -1])
         X = downseq[, ix][, -length(ix)]
         svdX = svd(X)
-        # rank = wsize-1#sum(cumsum(svdX$d)/sum(svdX$d)<= perrank) + 1
+        if (rank <= 0)
+            rank = sum(cumsum(svdX$d)/sum(svdX$d)<= 0.8) + 1
         sigma = diag(svdX$d)
         Ahat = diag(svdX$d^(-1/2)) %*% t(svdX$u) %*%  Xprim %*% svdX$v %*% diag(svdX$d^(1/2))
         eigres = eigen(Ahat)
@@ -54,7 +56,8 @@ segPCAOrg <- function(downseq, wsize, seqw, rank=6){
     for(itr in seqw){
         ix = itr : (itr + wsize -1)
         temp = svd(cov(t( downseq[, ix])))
-        #  rank = wsize-1#sum(cumsum(temp$d)/sum(temp$d)<= perrank) + 1
+        if (rank <= 0)
+          rank = sum(cumsum(temp$d)/sum(temp$d)<= 0.8) + 1
         temp1 = (temp$u[, 1:rank, drop = F] %*%  diag((sign(temp$u[1, 1:rank])), rank, rank)) # no as.vector
         PCAU = cbind(PCAU,  temp1)
     }
@@ -70,7 +73,8 @@ DMDOrg <- function(downseq, wsize, seqw, rank=6){
         Xprim = as.matrix(downseq[, ix][, -1])
         X = downseq[, ix][, -length(ix)]
         svdX = svd(X)
-        # rank = wsize-1#sum(cumsum(svdX$d)/sum(svdX$d)<= perrank) + 1
+        if (rank <= 0)
+            rank = sum(cumsum(svdX$d)/sum(svdX$d)<= 0.8) + 1
         sigma = diag(svdX$d)
         Ahat = diag(svdX$d^(-1/2)) %*% t(svdX$u) %*%  Xprim %*% svdX$v %*% diag(svdX$d^(1/2))
         eigres = eigen(Ahat)

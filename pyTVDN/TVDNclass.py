@@ -167,10 +167,15 @@ class TVDNDetect:
     
     
     def GetNewData(self):
-        r = self.paras.r
-        
         if self.Amat is None:
             self.GetAmat()
+
+        if self.paras.r is None:
+            eigVals, eigVecs = np.linalg.eig(self.Amat)
+            rSel = np.where(np.cumsum(np.abs(eigVals))/np.sum(np.abs(eigVals)) >0.8)[0][0] + 1
+            self.paras.r = rSel
+
+        r = self.paras.r
         
         self.midRes = GetNewEst(self.dXmat, self.Xmat, self.Amat, r=r, is_full=True)
         self.ndXmat, self.nXmat = self.midRes.ndXmat, self.midRes.nXmat
@@ -240,14 +245,13 @@ class TVDNDetect:
         kappa = self.paras.kappa
         Lmin = self.paras.Lmin
         MaxM = self.paras.MaxM
-        r = self.paras.r
 
         if self.saveDir is not None:
             saveResPath = self.saveDir/f"{self.paras.fName}_Rank{self.paras.r}.pkl"
             if not saveResPath.exists():
                 if self.midRes is None:
                     self.GetNewData()
-                self.finalRes = EGenDy(self.ndXmat, self.nXmat, r=r, canpts=self.canpts, kappa=kappa, Lmin=Lmin, MaxM=MaxM, is_full=True, showProgress=self.showProgress)
+                self.finalRes = EGenDy(self.ndXmat, self.nXmat, r=self.paras.r, canpts=self.canpts, kappa=kappa, Lmin=Lmin, MaxM=MaxM, is_full=True, showProgress=self.showProgress)
                 self.ecpts = self.finalRes.mbic_ecpts
                 print(f"Save Main Results at {saveResPath}.")
                 MainResults = edict()
@@ -278,7 +282,7 @@ class TVDNDetect:
         else:
             if self.midRes is None:
                 self.GetNewData()
-            self.finalRes = EGenDy(self.ndXmat, self.nXmat, r=r, canpts=self.canpts, kappa=kappa, Lmin=Lmin, MaxM=MaxM, is_full=True, showProgress=self.showProgress)
+            self.finalRes = EGenDy(self.ndXmat, self.nXmat, r=self.paras.r, canpts=self.canpts, kappa=kappa, Lmin=Lmin, MaxM=MaxM, is_full=True, showProgress=self.showProgress)
             self.ecpts = self.finalRes.mbic_ecpts
         self.GetRecResCur()
             
