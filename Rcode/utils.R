@@ -37,7 +37,7 @@ DMD <- function(downseq, wsize, seqw, rank=6){
         if (rank <= 0)
             rank = sum(cumsum(svdX$d)/sum(svdX$d)<= 0.8) + 1
         sigma = diag(svdX$d)
-        Ahat = diag(svdX$d^(-1/2)) %*% t(svdX$u) %*%  Xprim %*% svdX$v %*% diag(svdX$d^(1/2))
+        Ahat = diag(svdX$d^(-1/2)) %*% t(svdX$u) %*%  Xprim %*% svdX$v %*% diag(svdX$d^(-1/2))
         eigres = eigen(Ahat)
         eigmode = Xprim %*% svdX$v %*% diag(svdX$d^(-1/2)) %*% eigres$vector
         temp1 = eigmode[, 1:rank, drop = F] %*%   diag((sign(Re(eigmode)[1, 1:rank])), rank, rank)
@@ -76,7 +76,7 @@ DMDOrg <- function(downseq, wsize, seqw, rank=6){
         if (rank <= 0)
             rank = sum(cumsum(svdX$d)/sum(svdX$d)<= 0.8) + 1
         sigma = diag(svdX$d)
-        Ahat = diag(svdX$d^(-1/2)) %*% t(svdX$u) %*%  Xprim %*% svdX$v %*% diag(svdX$d^(1/2))
+        Ahat = diag(svdX$d^(-1/2)) %*% t(svdX$u) %*%  Xprim %*% svdX$v %*% diag(svdX$d^(-1/2))
         eigres = eigen(Ahat)
         eigmode = Xprim %*% svdX$v %*% diag(svdX$d^(-1/2)) %*% eigres$vector
         temp1 = eigmode[, 1:rank, drop = F] %*%   diag((sign(Re(eigmode)[1, 1:rank])), rank, rank)
