@@ -174,6 +174,10 @@ class TVDNDetect:
             eigVals, eigVecs = np.linalg.eig(self.Amat)
             rSel = np.where(np.cumsum(np.abs(eigVals))/np.sum(np.abs(eigVals)) >0.8)[0][0] + 1
             self.paras.r = rSel
+        elif self.paras.r < 1:
+            eigVals, eigVecs = np.linalg.eig(self.Amat)
+            rSel = np.where(np.cumsum(np.abs(eigVals))/np.sum(np.abs(eigVals)) >self.paras.r)[0][0] + 1
+            self.paras.r = rSel
 
         r = self.paras.r
         
