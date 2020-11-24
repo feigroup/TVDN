@@ -1,6 +1,7 @@
 import numpy as np
 import rpy2.robjects as robj
 from easydict import EasyDict as edict
+from numpy.linalg import inv, svd
 
 timeLims = edict()
 timeLims.st02 = [35, 95]
