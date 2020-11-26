@@ -2,6 +2,7 @@ import numpy as np
 import rpy2.robjects as robj
 from easydict import EasyDict as edict
 from numpy.linalg import inv, svd
+from scipy.signal import detrend
 
 timeLims = edict()
 timeLims.st02 = [35, 95]
@@ -102,8 +103,8 @@ def SegPredDMDHalf(Ymat, low, up, rank=0, initX=None):
         initX = X[:, 0]
     Xpred[:, 0] = initX
     for i in range(1, n1):
-        if i < int((up-low)/2)-1:
-            Xpred[:, i] = X[:, i]
+        if i < int((up-low)/2):
+            Xpred[:, i] = Xprime[:, i-1]
         else:
             Xpred[:, i] = Ahat.dot(Xpred[:, i-1])
     return Xpred

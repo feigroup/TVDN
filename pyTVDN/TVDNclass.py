@@ -251,6 +251,19 @@ class TVDNDetect:
         MaxM = self.paras.MaxM
 
         if self.saveDir is not None:
+            # Update the rank
+            if self.paras.r is None or self.paras.r < 1:
+                if self.Amat is None:
+                    self.GetAmat()
+                if self.paras.r is None:
+                    eigVals, eigVecs = np.linalg.eig(self.Amat)
+                    rSel = np.where(np.cumsum(np.abs(eigVals))/np.sum(np.abs(eigVals)) >0.8)[0][0] + 1
+                    self.paras.r = rSel
+                elif self.paras.r < 1:
+                    eigVals, eigVecs = np.linalg.eig(self.Amat)
+                    rSel = np.where(np.cumsum(np.abs(eigVals))/np.sum(np.abs(eigVals)) >self.paras.r)[0][0] + 1
+                    self.paras.r = rSel
+
             saveResPath = self.saveDir/f"{self.paras.fName}_Rank{self.paras.r}.pkl"
             if not saveResPath.exists():
                 if self.midRes is None:
