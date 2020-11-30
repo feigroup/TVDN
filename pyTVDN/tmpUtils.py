@@ -8,6 +8,24 @@ timeLims = edict()
 timeLims.st02 = [35, 95]
 timeLims.st03 = [20, 80]
 
+
+def supInfDist(set1, set2):
+    if len(set2) == 0:
+        dist = 0
+    elif len(set1) == 0:
+        dist = np.max(set2)
+    else:
+        set1 = np.array(set1)
+        set2 = np.array(set2)
+        dist = np.abs(set1 - set2.reshape(-1, 1)).min(axis=1).max()
+    return dist
+
+# Compute the Hausdorff distance between two change point sets
+def hdist(set1, set2):
+    dist1 = supInfDist(set1, set2)
+    dist2 = supInfDist(set2, set1)
+    return np.max((dist1, dist2))
+
 # load the gt for MEG--Eye data
 def txt2Time(txtF):   
     with open(txtF, "r") as f:
@@ -52,6 +70,14 @@ def obtainAbswU(DetObj):
     kpidxs = np.concatenate([[0], DetObj.ecpts]).astype(np.int)
     eigVals = DetObj.RecResCur.LamMs[:, kpidxs]
     wU = eigVecs.dot(eigVals)
+    return np.abs(wU)
+
+# Obtain the weighted U from the detection obj for the second way
+def obtainAbswU2(DetObj):
+    absEigVecs = np.abs(DetObj.midRes.eigVecs[:, :DetObj.paras.r])
+    kpidxs = np.concatenate([[0], DetObj.ecpts]).astype(np.int)
+    absEigVals = np.abs(DetObj.RecResCur.LamMs[:, kpidxs])
+    wU = absEigVecs.dot(absEigVals)
     return np.abs(wU)
 
 
