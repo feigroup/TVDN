@@ -7,8 +7,8 @@ necessary files
 realdata/fMRIHPFs/
 Rcode/to_R/
 *.nii
-*.pkl
 *.swp
+*.pkl
 
 test.*
 demo/*.jpg
