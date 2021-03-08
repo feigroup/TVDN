@@ -17,3 +17,8 @@ Rcode/*.txt
 
 !pyTVDN/data/
 !data/brain_plot_meg
+pyTVDN/tmpUtils.py
+pyTVDN/TVDNRankTuning.py
+pyTVDN/utils.py
+pyTVDN/TVDNKappaTuning.py
+realdata/

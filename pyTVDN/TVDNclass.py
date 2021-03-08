@@ -28,15 +28,16 @@ class TVDNDetect:
                     kappa: The parameter of penalty in MBIC
                     Lmin: The minimal length between 2 change points
                     r: The rank setted beforehand, in most cases, r=rAct. If we have non-complex singular values, r < rAct
+                       If r is decimal, the rank is the number of eigen values which account for 100r % of the total variance
                     MaxM: int, maximal number of change point 
                     lamb: The smooth parameter for B-spline
                     downRate: The downsample factor, determine how many Ai matrix to contribute to estimate the eigen values/vectors.
-                    decimateRate: Mainly for MEG data. The rate to decimate from MEG data.
+                    decimateRate: Mainly for MEG data. The rate to decimate from MEG data, reduce the resolution
                     T: The time course
                     is_detrend: Whether detrend data or not
                     fct: The factor to adjust h when estimating A matrix
                     fName:  The file name when saving the results
-                    freq: The parameter used drawing the eigen values plots
+                    freq: The frequency of the data sequences, the parameter used drawing the eigen values plots
         """
         self.Ymat = Ymat
         self.paras = edict()
@@ -131,6 +132,8 @@ class TVDNDetect:
         decimateRate = self.paras.decimateRate
         if decimateRate is not None:
             nYmatList = []
+            # I use the decimate function in R to reproduce the results by the R version code
+            # It is save to use decimate function in python
             for i in range(nYmat.shape[0]):
                 nYmatList.append(decimate_R(nYmat[i, :], decimateRate))
             nYmat = np.array(nYmatList)

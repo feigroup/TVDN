@@ -1,7 +1,7 @@
 """ 
 Some utils functions  to implement TVDN detection method.
 All the functions when involving change point index use Python index method (i.e., start from 0 but not 1)
-The input and output of the functions use R index method (i.e., start from 1 not but 0)
+The input and output of the functions use R index method (i.e., start from 1 but not 0)
 """
 
 # import needed packages
