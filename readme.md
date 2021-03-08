@@ -11,7 +11,7 @@ functional magnetic resonance (fMRI) and the magnetoencephalography (MEG) imagin
 - Enviroment:
   - Python 3
   - R
- 
+
 ```
 git clone https://github.com/JINhuaqing/TVDN.git
 ```
@@ -25,7 +25,6 @@ pip install -r requirements.txt
 `signal` pakcage in R is also needed
 
 ```R
-
 install.packages("signal")
 ```
 
@@ -44,27 +43,39 @@ import numpy as np
 # Construnct the detection object
 Detection = TVDNDetect(Ymat=Ymat, saveDir="../results", dataType="MEG", fName="subj2", r=8, kappa=2.95, freq=60)
 # Ymat, d x n maitrx, where d is the number of sequences
+# r: the number of rank used for detection
+#    if r is decimal, the rank is the number of eigen values such that account for 100r% of the variance.
+#    if r is None, r=0.8
 # saveDir, the path to save the results. If not specified, the results will not be saved
 # dataType, "MEG" or "fMRI". Different dataTypes have different default parameters. You may leave it blank
 # All other parameters have default values, but you can still specify here.
 # For the meaning of the other parameters, you can refer to the source code
 
 
+# When n is large, the detection would take a while
+# To reduce the computaion burden, we provide a screening step 
+# to obain the candidate point set
+# Screening is optional
+Detection.Screening(wh=10)
+# wh: the screening window size
+
 # Run detection
 Detection()
 
-# You can tune the kappa, the parameters for MBIC penalty term
+# You can tune kappa, the parameters for MBIC penalty term kappa by the reconstructed errors
+# However, it does not always work very well
 kappas = np.linspace(2.5, 3, 100)
 Detection.TuningKappa(kappas)
 
 # You can specify the number of change points you want via provide the argument `numChg`, then the `UpdateEcpts` will update the current estimated change point set accordingly
 Detection.UpdateEcpts(numChg=12)
-# If You don't specify the number of change points you want, then the `UpdateEcpts` will update the current estimated change point set based on optimal kappa values
+# If You don't specify the number of change points you want, then the `UpdateEcpts` will update the current estimated change point set based on optimal kappa values by TuningKappas function
 Detection.UpdateEcpts()
 
 # Plot the detection results
 Detection.PlotEcpts(saveFigPath="detectionResults.jpg")
 # save figure if you specify the `saveFigPath`
+# You can specify the GT parameter to draw the ground truth for comparison
 
 # Plot the reconstruncted Ymat.
 Detection.PlotRecCurve(idxs=[43, 45, 59], saveFigPath="recCurve.jpg")
@@ -74,22 +85,9 @@ Detection.PlotRecCurve(idxs=[43, 45, 59], saveFigPath="recCurve.jpg")
 Detection.PlotEigenCurve()
 # save figure if you specify the `saveFigPath`
 
-```
-
-
-You can tune kappa and rank simultaneously, but it would typically take a while.
-```python
-from pyTVDN import TVDNRankTuning
-
-ranks = [2, 4, 6, 8, 10]
-kappas = [1.45, 1.55, 1.65, 1.75, 1.85, 1.95]
-# All other parameters have default values, but you can still specify here.
-Res = TVDNRankTuning(ranks, kappas, Ymat=Ymat, dataType="fMRI", saveDir="./results")
+# print the results
+print(Detection)
 
 ```
-Res is a `dict` containing:
 
-- Optimal rank in the given ranks
-- Optimal kappa in the given kappas
-- The `TVDNDetect` object under the optimal rank and kappa
-- The minimal MSE in the given ranks and kappas
+
