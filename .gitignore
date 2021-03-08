@@ -12,7 +12,7 @@ Rcode/to_R/
 
 test.*
 demo/*.jpg
-demo/
+demo/*.ipynb
 others/*.zip
 Rcode/*.txt
 plots
