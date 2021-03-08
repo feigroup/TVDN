@@ -14,6 +14,7 @@ test.*
 demo/*.jpg
 others/*.zip
 Rcode/*.txt
+plots
 
 !pyTVDN/data/
 !data/brain_plot_meg
@@ -22,3 +23,4 @@ pyTVDN/TVDNRankTuning.py
 pyTVDN/utils.py
 pyTVDN/TVDNKappaTuning.py
 realdata/
+simulations/
