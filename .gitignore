@@ -12,11 +12,13 @@ Rcode/to_R/
 
 test.*
 demo/*.jpg
+demo/
 others/*.zip
 Rcode/*.txt
 plots
 
 !pyTVDN/data/
+!demo/demo.ipynb
 pyTVDN/tmpUtils.py
 pyTVDN/TVDNRankTuning.py
 pyTVDN/utils.py
