@@ -1,0 +1,30 @@
+__pycache__/
+.ipynb_checkpoints/
+data/*
+tmp
+results
+necessary files
+realdata/fMRIHPFs/
+Rcode/to_R/
+*.nii
+*.swp
+*.pkl
+
+test.*
+demo/*.jpg
+demo/*.ipynb
+others/*.zip
+Rcode/*.txt
+plots
+otherProjs/*
+
+!pyTVDN/data/
+!demo/MEGDemo.ipynb
+!demo/fMRIDemo.ipynb
+!demo/multipfMRIsDemo.ipynb
+# pyTVDN/tmpUtils.py
+pyTVDN/TVDNRankTuning.py
+pyTVDN/TVDNKappaTuning.py
+realdata/
+simulations/
+MEG_BrainView_plot/*
