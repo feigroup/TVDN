@@ -10,7 +10,8 @@ from scipy.signal import detrend
 from numpy.linalg import inv, svd
 from scipy.stats import multivariate_normal as mnorm
 from easydict import EasyDict as edict
-from .Rfuns import bw_nrd0_R, smooth_spline_R, fourier_reg_R
+from .Rfuns import smooth_spline_R, fourier_reg_R
+from .utils import pybwnrd0
 # from .utils import in_notebook
 #if in_notebook():
 #    from tqdm import tqdm_notebook as tqdm
@@ -70,7 +71,7 @@ def GetAmat(dXmat, Xmat, time, downrate=1, fct=1):
     Return:
         A d x d matrix, it is sum of n/downrate  Ai matrix
     """
-    h = bw_nrd0_R(time, fct=fct)
+    h = pybwnrd0(time)*fct
     d, n = Xmat.shape
     Amat = np.zeros((d, d))
     for idx, s in enumerate(time[::downrate]):

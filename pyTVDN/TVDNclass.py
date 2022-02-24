@@ -1,7 +1,7 @@
 import numpy as np
 from pprint import pprint
 from pathlib import Path
-from scipy.signal import detrend
+from scipy.signal import detrend, decimate
 import seaborn as sns
 import matplotlib.pyplot as plt
 import pickle
@@ -9,7 +9,6 @@ from easydict import EasyDict as edict
 from prettytable import PrettyTable
 import warnings
 from .TVDNutils import *
-from .Rfuns import decimate_R
 # from .utils import in_notebook
 #if in_notebook():
 #    from tqdm import tqdm_notebook as tqdm
@@ -17,12 +16,18 @@ from .Rfuns import decimate_R
 from tqdm import tqdm
 
 class TVDNDetect:
-    def __init__(self, Ymat, smoothType="Bspline", dataType=None, saveDir=None, showProgress=True, **paras):
+    def __init__(self, Ymat=None, dXmat=None, Xmat=None, smoothType="Bspline", dataType=None, saveDir=None, showProgress=True, **paras):
         """
         Input:
-            Ymat: The data matrix, d x n
+            Ymat: The data matrix, d x N, Ymat will be ignored if providing Xmat and dXmat
+            dXmat: The first derivative of data matrix after smoothing: d x n
+            Xmat: The data matrix after smoothing: d x n
             dataType: real data type, fMRI or MEG
             saveDir: Dir to save the results, if not specified, not save
+            smoothType: Smoothing type:
+                        "bspline": Bspline method
+                        "fourier": fourier smoothing
+                        None: No smoothing, input the smoothing data by yourself
             paras: Other parameters. There are default valuesi but you may specify these parameters manually.
                Inlcuding:
                     kappa: The parameter of penalty in MBIC
@@ -41,17 +46,20 @@ class TVDNDetect:
                     freq: The frequency of the data sequences, the parameter used drawing the eigen values plots
                     nKnots: number of knots for Bspline
         """
+        assert (Ymat is not None) or ((dXmat is not None) and (Xmat is not None)), "You must give the data, either Ymat (raw data) or (Xmat, dXmat) (data after smoothing)"
+        assert (smoothType is not None) or ((dXmat is not None) and (Xmat is not None)), "You must provide the smooth method or (Xmat, dXmat) (data after smoothing)"
+
+
         self.Ymat = Ymat
+        self.Xmat = Xmat
+        self.dXmat = dXmat
+
         self.paras = edict()
         if dataType is not None:
             self.dataType = dataType.lower()
         else:
             self.dataType = dataType
 
-        if smoothType is not None:
-            self.smoothType = smoothType.lower()
-        else:
-            self.smoothType = smoothType
 
 
         if self.dataType == "meg":
@@ -108,6 +116,27 @@ class TVDNDetect:
             if isinstance(self.paras.r, int):
                 print(f"The rank can be {self.paras.r+1} if {self.paras.r} breaks a eigval pair.")
         
+
+        if ((self.dXmat is not None) and (self.Xmat is not None)):
+            smoothType = None
+            print("The following parameters will be ignored as you give the  data after smoothing, ")
+            print("{smoothType, paras.lamb, paras.is_detrend, paras.decimateRate}")
+            _, n = self.Xmat.shape
+            acTime = n / self.paras.freq
+            self.ptime = np.linspace(0, acTime, n) 
+            self.time = np.linspace(0, self.paras.T, n)
+            self.nYmat = self.Xmat
+        else:
+            self.ptime = None
+            self.time = None
+            self.nYmat = None
+
+        if smoothType is not None:
+            self.smoothType = smoothType.lower()
+        else:
+            self.smoothType = smoothType
+
+
         if saveDir is not None:
             self.saveDir = Path(saveDir)
             if not self.saveDir.exists():
@@ -116,10 +145,6 @@ class TVDNDetect:
             self.saveDir = saveDir
             
         self.showProgress = showProgress
-        self.nYmat = None
-        self.Xmat = None
-        self.dXmat = None
-        self.time = None
         self.midRes = None
         self.nXmat = None
         self.ndXmat = None
@@ -140,12 +165,7 @@ class TVDNDetect:
         # Decimate the data first
         decimateRate = self.paras.decimateRate
         if decimateRate is not None:
-            nYmatList = []
-            # I use the decimate function in R to reproduce the results by the R version code
-            # It is OK to use decimate function in python
-            for i in range(nYmat.shape[0]):
-                nYmatList.append(decimate_R(nYmat[i, :], decimateRate))
-            nYmat = np.array(nYmatList)
+            nYmat = decimate(nYmat, decimateRate)
 
         # Then Detrend the data
         is_detrend = self.paras.is_detrend
@@ -159,16 +179,20 @@ class TVDNDetect:
         self.time = np.linspace(0, self.paras.T, n)
     
     def SmoothEst(self):
-        if self.nYmat is None:
-            self._Preprocess()
-        _, n = self.nYmat.shape
-        acTime = n / self.paras.freq
-        self.ptime = np.linspace(0, acTime, n) 
-        self.time = np.linspace(0, self.paras.T, n)
-        if self.smoothType == "bspline":
-            self.dXmat, self.Xmat = GetBsplineEst(self.nYmat, self.time, lamb=self.paras.lamb, nKnots=self.paras.nKnots)
-        elif self.smoothType == "fourier":
-            self.dXmat, self.Xmat = GetFourierEst(self.nYmat, self.time, nbasis=self.paras.nbasis)
+        if self.smoothType is not None:
+            if self.nYmat is None:
+                self._Preprocess()
+            _, n = self.nYmat.shape
+            acTime = n / self.paras.freq
+            self.ptime = np.linspace(0, acTime, n) 
+            self.time = np.linspace(0, self.paras.T, n)
+            if self.smoothType == "bspline":
+                self.dXmat, self.Xmat = GetBsplineEst(self.nYmat, self.time, lamb=self.paras.lamb, nKnots=self.paras.nKnots)
+            elif self.smoothType == "fourier":
+                self.dXmat, self.Xmat = GetFourierEst(self.nYmat, self.time, nbasis=self.paras.nbasis)
+        else:
+            pass
+
     
     def GetAmat(self):
         downRate = self.paras.downRate

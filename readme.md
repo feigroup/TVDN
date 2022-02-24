@@ -24,11 +24,6 @@ For dependencies in Python, run
 pip install -r requirements.txt
 ```
 
-`signal` pakcage in R is also needed
-
-```R
-install.packages("signal")
-```
 
 ##  Examples
 
@@ -42,7 +37,7 @@ from pathlib import Path
 import numpy as np
 
 
-# Construnct the detection object
+# Construnct the detection object from raw data (before smoothing)
 Detection = TVDNDetect(Ymat=Ymat, saveDir="../results", dataType="MEG", fName="subj2", r=8, kappa=2.95, freq=60)
 # Ymat, d x n maitrx, where d is the number of sequences
 # r: the number of rank used for detection
@@ -53,6 +48,9 @@ Detection = TVDNDetect(Ymat=Ymat, saveDir="../results", dataType="MEG", fName="s
 # All other parameters have default values, but you can still specify here.
 # For the meaning of the other parameters, you can refer to the source code
 
+# Construnct the detection object from smoothed data
+Detection = TVDNDetect(dXmat=dXmat, Xmat=Xmat, saveDir="../results", dataType="MEG", fName="subj2", r=8, kappa=2.95, freq=60)
+# Xmat, dXmat: d x n maitrx, where d is the number of sequences, (data, its first derivative) after smoothing
 
 # When n is large, the detection would take a while
 # To reduce the computaion burden, we provide a screening step 
@@ -90,6 +88,14 @@ Detection.PlotEigenCurve()
 # print the results here
 print(Detection)
 
+# extract the results
+# estimated switching points
+Detection.ecpts
+# Reconstructed MSE 
+Detection.GetCurMSE()
+
 ```
+
+More usage, plz find under  `demo` folder.
 
 
