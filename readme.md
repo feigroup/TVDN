@@ -5,8 +5,6 @@ This is repo is to implement a time-varying dynamic network (TVDN) method to
 extract the resting state functional connectivity (RSFC) from both 
 functional magnetic resonance (fMRI) and the magnetoencephalography (MEG) imaging.
 
-It contains the simulation code.
-
 **If you encounter any problems when using the repo, be free to contact us (<jinhuaqing@connect.hku.hk>)**
 
 
