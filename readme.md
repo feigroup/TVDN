@@ -24,6 +24,30 @@ For dependencies in Python, run
 pip install -r requirements.txt
 ```
 
+**Or I recommend you to use docker container**
+
+```bash
+
+docker pull huaqingjin/tvdn
+
+```
+
+then run 
+
+```bash
+
+docker  run -it huaqingjin/tvdn /bin/bash
+
+```
+
+to get a container.
+
+You can run `TVDN` code directly in the container after clone
+
+```bash
+git clone https://github.com/JINhuaqing/TVDN.git
+```
+
 
 ##  Examples
 
