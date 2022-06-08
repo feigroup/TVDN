@@ -219,6 +219,10 @@ class TVDNDetect:
             self.GetAmat()
 
         eigVals, eigVecs = np.linalg.eig(self.Amat)
+        # sort the eigvs and eigvecs
+        sidx = np.argsort(-np.abs(eigVals))
+        eigVals = eigVals[sidx]
+        eigVecs = eigVecs[:, sidx]
         if self.paras.r is None:
             rSel = np.where(np.cumsum(np.abs(eigVals))/np.sum(np.abs(eigVals)) >0.8)[0][0] + 1
             self.paras.r = rSel
@@ -306,6 +310,10 @@ class TVDNDetect:
             if self.Amat is None:
                 self.GetAmat()
             eigVals, eigVecs = np.linalg.eig(self.Amat)
+            # sort the eigvs and eigvecs
+            sidx = np.argsort(-np.abs(eigVals))
+            eigVals = eigVals[sidx]
+            eigVecs = eigVecs[:, sidx]
             if self.paras.r is None:
                 rSel = np.where(np.cumsum(np.abs(eigVals))/np.sum(np.abs(eigVals)) >0.8)[0][0] + 1
                 self.paras.r = rSel

@@ -104,6 +104,11 @@ def GetNewEst(dXmat, Xmat, Amat, r, is_full=False):
     """
     _, n = dXmat.shape
     eigVals, eigVecs = np.linalg.eig(Amat)
+    # sort the eigvs and eigvecs
+    sidx = np.argsort(-np.abs(eigVals))
+    eigVals = eigVals[sidx]
+    eigVecs = eigVecs[:, sidx]
+
     eigValsfull = np.concatenate([[np.Inf], eigVals])
     kpidxs = np.where(np.diff(np.abs(eigValsfull))[:r] != 0)[0]
     eigVecsInv = inv(eigVecs)
